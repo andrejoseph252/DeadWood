@@ -15,7 +15,7 @@ test('seeded random is deterministic', () => {
 });
 
 test('plot layout and terrain fields load headless', () => {
-  assert.equal(HALF, 20);
+  assert.equal(HALF, 30);
   assert.ok(TREES.length > 0);
   for (const t of TREES) assert.ok(Math.abs(t.x) < HALF && Math.abs(t.z) < HALF, `tree outside plot: ${t.kind}`);
   assert.ok(Number.isFinite(height(0, 0)) && Number.isFinite(WATER_Y));
@@ -24,7 +24,7 @@ test('plot layout and terrain fields load headless', () => {
 
 test('habitat weights sum to 1 and every habitat is present', () => {
   const seen = new Set();
-  for (let x = -19.5; x < 20; x += 1) for (let z = -19.5; z < 20; z += 1) {
+  for (let x = -29.5; x < 30; x += 1) for (let z = -29.5; z < 30; z += 1) {
     const w = habitatW(x, z); assert.ok(Math.abs(w.reduce((a, b) => a + b, 0) - 1) < 1e-9);
     seen.add(w.indexOf(Math.max(...w)));
   }

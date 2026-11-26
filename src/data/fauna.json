@@ -17,7 +17,7 @@
     "robin": { "scientific": "Erithacus rubecula", "common": "European robin", "habitats": ["H3"], "active": "follows the rooting boar for exposed invertebrates (interaction 11); evening song" },
     "wren": { "scientific": "Troglodytes troglodytes", "common": "Wren", "habitats": ["H7"], "active": "around its nest in the biggest root plate" },
     "nuthatch": { "scientific": "Sitta europaea", "common": "Eurasian nuthatch", "habitats": ["H1"], "active": "climbing head-down on the ivy-clad oak by the stream" },
-    "buzzard": { "scientific": "Buteo buteo", "common": "Common buzzard", "habitats": ["H5", "H7"], "active": "soars over the open edge, then perches on the snag by the windthrow to hunt (interaction 8)", "perch": "t007", "soar": { "centre": [5, 4], "r": 8, "height": 15 } },
+    "buzzard": { "scientific": "Buteo buteo", "common": "Common buzzard", "habitats": ["H5", "H7"], "active": "soars over the hedge and meadow strip, then perches on the snag by the windthrow to watch for voles (interaction 8)", "perch": "t007", "soar": { "centre": [12, 17], "r": 9, "height": 15 } },
     "frog": { "scientific": "Rana temporaria", "common": "Common frog", "habitats": ["H4"], "active": "froglets and adults in the damp grass by the backwater", "home": [-6.2, 14.2], "range": 1.6 },
     "salamander": { "scientific": "Salamandra salamandra", "common": "Fire salamander", "habitats": ["H4"], "active": "larvae in the backwater (deposited Mar-May); adults come out on rainy nights, so not now" },
     "lizard": { "scientific": "Zootoca vivipara", "common": "Common lizard", "habitats": ["H6"], "active": "basking on the warm stone on the outcrop in the last sun" },

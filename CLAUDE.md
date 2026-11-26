@@ -5,7 +5,7 @@ Read `docs/world.md` first: it is the source of truth for what exists in the wor
 Work on one step per session unless told otherwise, and don't start a step until the previous one passes its "done when" checks.
 
 ## What this is
-A forest ecology game with an academic feel. The player directs a small field station on one research plot (1 world unit = 1 m). The plot is growing from the prototype's 28 × 28 m to the 60 × 60 m described in `world.md`; the current 28 m scene becomes its canopy gap. Field agents carry out jobs the player sets up physically on the map (drag a fence line, drop a quadrat, aim a camera trap, paint-mark trees). The ecosystem is simulated and the player only learns its state through measurement.
+A forest ecology game with an academic feel. The player directs a small field station on one research plot (1 world unit = 1 m). The plot is 60 × 60 m (Stage B in `world.md` section 3); the prototype's 28 m scene is its canopy gap. Field agents carry out jobs the player sets up physically on the map (drag a fence line, drop a quadrat, aim a camera trap, paint-mark trees). The ecosystem is simulated and the player only learns its state through measurement.
 
 ## Rules
 - Keep the **simulation** separate from **rendering**. The sim must run headless (no three.js imports) so it can be tested and fast-forwarded. Rendering reads sim state.
@@ -32,10 +32,10 @@ A forest ecology game with an academic feel. The player directs a small field st
 - `flora/` — `trees.js` (trees, saplings, ivy, foliage clumps), `shrubs.js`, `grass.js`, `herbs.js`, `litter.js` (chips, cones, twigs, moss), `fungi.js`.
 - `fauna/` — `parts.js` (ellipsoid / segment / pivot helpers), `rigs.js` (mammals), `rigs-birds.js`, `rigs-small.js` (amphibians, reptiles, insects), `motion.js` (steering, flight arcs, wing lift), `behaviours.js` (the prototype's animals), `behaviours-more.js` (the rest), `index.js` (placement and the Follow list).
 - `world/obstacles.js` — where animals can't walk (trunks, water, wall, rocks, root plates, logs). Pure; `test/fauna.test.js` checks every route in `data/fauna.json` against it.
-- `render/` — `pipeline.js` (renderer, low-res target, pixel post pass), `camera.js` (map controls, follow, keyboard), `lights.js`, `materials.js` (toon ramp), `wind.js`, `textures.js`, `instancing.js`.
+- `render/` — `pipeline.js` (renderer, low-res target, pixel post pass), `camera.js` (map controls, follow, keyboard), `lights.js`, `materials.js` (toon ramp), `wind.js`, `textures.js`, `instancing.js` (splits instanced meshes into 15 m chunks for frustum culling).
 - `ui/` — keyboard state, camera toolbar.
 - `sim/` — the headless simulation (empty until after the Setting Build).
-- `data/` — `fauna.json` (species, what each is doing on the June evening, routes), `map.json` (Stage A map: wall, stream, outcrop, sett, windthrow…), `plot01.json` (hand-placed heart around the gap), `species.json` (names, render params). Setting Build S1 adds `habitats.json`, `interactions.json`, `history.json` and `map.json`, transcribed from `world.md`.
+- `data/` — `fauna.json` (species, what each is doing on the June evening, routes), `map.json` (the 60 m map: wall, stream, outcrop, sett, windthrow…), `plot01.json` (hand-placed heart around the gap), `species.json` (names, render params). Setting Build S1 adds `habitats.json`, `interactions.json`, `history.json` and `map.json`, transcribed from `world.md`.
 
 **Headless boundary:** `sim/`, `world/plot.js` (with `fields.js` and `layout.js`) and `core/` must not import three.js or any package. `test/boundaries.test.js` walks their import graphs and fails if they do.
 

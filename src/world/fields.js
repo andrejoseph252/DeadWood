@@ -22,7 +22,8 @@ export const pathZ = (x) => { const b = sstep(10, 14, Math.abs(x)); return pathC
 const TRAILS = Object.values(map.trails).filter((t) => t.points).map((t) => ({ w: t.w, seg: t.points.slice(1).map(([x1, z1], i) => { const [x0, z0] = t.points[i]; return { x0, z0, dx: x1 - x0, dz: z1 - z0, l2: (x1 - x0) ** 2 + (z1 - z0) ** 2 }; }) }));
 const segDist = (x, z, s) => { const t = Math.max(0, Math.min(1, ((x - s.x0) * s.dx + (z - s.z0) * s.dz) / s.l2)); return Math.hypot(x - s.x0 - s.dx * t, z - s.z0 - s.dz * t); };
 export const trailW = (x, z) => TRAILS.reduce((m, t) => Math.max(m, sstep(t.w * 1.6, t.w * 0.6, Math.min(...t.seg.map((s) => segDist(x, z, s))) + (vnoise(x * 1.3, z * 1.3) - 0.5) * t.w)), 0);
-export const pathW = (x, z) => Math.max(sstep(0.75, 0.3, Math.abs(z - pathZ(x)) + (vnoise(x * 0.9, z * 0.9) - 0.5) * 0.5), trailW(x, z));
+// (the deer path fades out where it meets the outcrop at the west edge)
+export const pathW = (x, z) => Math.max(sstep(0.75, 0.3, Math.abs(z - pathZ(x)) + (vnoise(x * 0.9, z * 0.9) - 0.5) * 0.5) * sstep(-22, -19.5, x), trailW(x, z));
 
 const deerPathW = (x, z) => sstep(1.4, 0.4, Math.abs(z - pathZ(x)));
 
@@ -73,7 +74,8 @@ export function channelW(x, z) {
 
 // ---------- outcrop, charcoal platform, sett ----------
 const O = map.outcrop;
-export const outcropEdge = (z) => O.edge + 0.7 * Math.sin(z * 0.5) + 0.5 * Math.sin(z * 1.3 + 2);
+// the step's line: further west north of z ~ 2 (clear of the charcoal platform), east of that by the spring
+export const outcropEdge = (z) => O.northEdge + (O.edge - O.northEdge) * sstep(-1, 4, z) + 0.7 * Math.sin(z * 0.5) + 0.5 * Math.sin(z * 1.3 + 2);
 // 0..1 on top of the outcrop (the step is the 0..1 transition)
 export const outcropW = (x, z) => sstep(0.35, -0.45, x - outcropEdge(z)) * sstep(O.zStart - 1, O.zStart + 2.5, z);
 
@@ -153,6 +155,11 @@ export function habitatW(x, z) {
   const wt = (1 - plant) * (1 - edge);
   return [rest * (1 - east), rest * east * plant, gap, st, rest * east * edge, o, rest * east * wt];
 }
+// the forest edge (H5) east of the wall, from the inside out: pioneer belt, hedge (shrub mantle), meadow strip
+const edgeN = (x, z) => (fbm(x * 0.2 + 60, z * 0.2) - 0.5) * 2.4;
+export const hedgeW = (x, z) => sstep(-0.6, 0.6, x - wallX(z) - 0.8) * sstep(-1, 1, z - Z.hedgeNorth + edgeN(x, z)) * sstep(1, -1, z - Z.meadowNorth + edgeN(x, z) * 0.5);
+export const meadowW = (x, z) => sstep(-0.6, 0.6, x - wallX(z) - 0.8) * sstep(-1, 1, z - Z.meadowNorth + edgeN(x, z) * 0.5);
+
 export function habitatAt(x, z) {
   const w = habitatW(x, z); let k = 0;
   for (let i = 1; i < w.length; i++) if (w[i] > w[k]) k = i;

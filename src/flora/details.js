@@ -7,7 +7,7 @@ import { C, toon, tm } from '../render/materials.js';
 import { makeRock } from '../world/props.js';
 import { trunkR } from './trees.js';
 import { HALF, MAP, TREES, PLATES, SETT, SPRING, BACKWATER, height, sample, habitatW, canopyShade, pathW, channelW, streamNear, waterAt, wallX,
-  outcropW, outcropEdge, charcoalW, gapW, GAP } from '../world/plot.js';
+  outcropW, outcropEdge, charcoalW, gapW, GAP, meadowW } from '../world/plot.js';
 
 const flat = (w, l) => { const g = new THREE.PlaneGeometry(w, l); g.rotateX(-Math.PI / 2); return g; };
 const stick = (r0, r1) => { const g = new THREE.CylinderGeometry(r1, r0, 1, 5); g.translate(0, 0.5, 0); return g; };
@@ -16,7 +16,7 @@ const halfDisc = (r) => { const g = new THREE.SphereGeometry(r, 7, 3, 0, Math.PI
 export function buildDetails(ctx) {
   const { scene, rng, tex, instances, sprites } = ctx;
   const { rnd, rr, pick } = rng;
-  const L = { flatLeaf: [], lime: [], dust: [], roots: [], limbs: [], brackets: [], cushions: [], tufts: [], tuftTops: [], umbels: [], marigold: [], ivy: [], cones: [], scales: [], cores: [], dark: [], mudBand: [] };
+  const L = { molehills: [], flatLeaf: [], lime: [], dust: [], roots: [], limbs: [], brackets: [], cushions: [], tufts: [], tuftTops: [], umbels: [], marigold: [], ivy: [], cones: [], scales: [], cores: [], dark: [], mudBand: [] };
   const veterans = TREES.filter((t) => (t.kind === 'beech' || t.kind === 'oak') && t.h > 8);
 
   // ---------- H1 old beech-oak stand ----------
@@ -108,6 +108,22 @@ export function buildDetails(ctx) {
   // rowan in flower (creamy flat heads, May-June) on the upper crown
   for (const t of TREES.filter((t) => t.kind === 'rowan')) { const gy = height(t.x, t.z); for (let k = 0; k < 16; k++) { const a = rnd() * 6.28, u = rr(0.2, 1), r = t.r * 0.85 * Math.sqrt(1 - u * u); L.umbels.push({ x: t.x + Math.cos(a) * r, y: gy + t.h - t.r * 0.75 + u * t.r * 0.9, z: t.z + Math.sin(a) * r, c: '#efe6c8', s: rr(0.2, 0.26) }); } }
 
+  // ---------- H5 meadow strip: June flowers in the sward, and molehills ----------
+  // yarrow (Achillea millefolium) flat white heads; common knapweed (Centaurea nigra) purple; ribwort plantain
+  // (Plantago lanceolata) dark heads on bare stalks; molehills where the mole (Talpa europaea) pushes up soil
+  { const stalks = [];
+    for (let i = 0, n = 0; i < 6000 && n < 260; i++) {
+      const [x, z] = sample(rng, 0.5); if (meadowW(x, z) < 0.7 || channelW(x, z) > 0.02 || fbm(x * 0.5 + 33, z * 0.5) < 0.42) continue;
+      const kind = rnd(), gy = height(x, z), h = rr(0.4, 0.75);
+      stalks.push({ x, y: gy, z, sx: 1, sy: h, sz: 1, c: '#5a7a2c' });
+      if (kind < 0.4) L.umbels.push({ x, y: gy + h, z, c: '#f0ece0', s: rr(0.14, 0.2) });
+      else if (kind < 0.7) L.tuftTops.push({ x, y: gy + h, z, c: pick(['#8a4a9a', '#9a5aa8']), s: 0.11 });
+      else L.tuftTops.push({ x, y: gy + h, z, c: '#3a3020', s: 0.08 });
+      n++;
+    }
+    instances(stick(0.012, 0.01), toon(), stalks, { wind: { strength: 0.08, grass: true } });
+    for (let i = 0, n = 0; i < 500 && n < 9; i++) { const [x, z] = sample(rng, 1); if (meadowW(x, z) < 0.8 || pathW(x, z) > 0.1) continue; L.molehills.push({ x, y: height(x, z) - 0.05, z, sx: rr(1.4, 1.9), sy: rr(0.7, 1), sz: rr(1.4, 1.9), ry: rnd() * 6, c: pick(['#5a4030', '#4e3828']) }); n++; } }
+
   // ---------- H6 rock outcrop ----------
   for (let i = 0, n = 0; i < 600 && n < 20; i++) { const z = rr(MAP.outcrop.zStart + 1, HALF - 0.8), x = rr(-HALF + 0.6, outcropEdge(z) - 0.3); if (outcropW(x, z) < 0.85) continue; L.cushions.push({ x, y: height(x, z) - 0.03, z, sx: rr(0.8, 1.8), sy: rr(0.5, 0.8), sz: rr(0.8, 1.8), ry: rnd() * 6, c: pick(['#3f6b22', '#56862a', '#4a7a26']) }); n++; }
   // a flat sun-warmed basking stone on the sunny SE corner of the top (the lizard's spot)
@@ -146,6 +162,7 @@ export function buildDetails(ctx) {
   instances(stick(0.1, 0.07), toon(), L.limbs, { cast: true });
   instances(halfDisc(0.07), toon(), L.brackets);
   instances(new THREE.SphereGeometry(0.2, 7, 4, 0, Math.PI * 2, 0, Math.PI / 2), toon(), L.cushions);
+  instances(new THREE.SphereGeometry(0.16, 7, 4, 0, Math.PI * 2, 0, Math.PI / 2), toon(), L.molehills, { cast: true });
   { const g = new THREE.BufferGeometry(), P = [], N = [], CL = [];   // thin, short tufts
     for (let b = 0; b < 9; b++) { const a = b / 9 * Math.PI * 2, w = 0.02, h = rr(0.25, 0.35), out = rr(0.06, 0.14); P.push(-Math.sin(a) * w, 0, Math.cos(a) * w, Math.sin(a) * w, 0, -Math.cos(a) * w, Math.cos(a) * out, h, Math.sin(a) * out); N.push(0, 1, 0, 0, 1, 0, 0, 1, 0); CL.push(0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 1.1, 1.1, 1.1); }
     g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(CL, 3));

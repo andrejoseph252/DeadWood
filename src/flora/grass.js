@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { fbm, sstep } from '../core/noise.js';
 import { toon } from '../render/materials.js';
 import { groundColor } from '../world/ground.js';
-import { HALF, height, sample, gapW, pathW, puddleD, clearW, canopyShade, habitatW, channelW, outcropW, spoilW, pitW, charcoalW } from '../world/plot.js';
+import { HALF, height, sample, gapW, pathW, puddleD, clearW, canopyShade, habitatW, channelW, outcropW, spoilW, pitW, charcoalW, meadowW } from '../world/plot.js';
 
 const AREA = (HALF / 14) ** 2;   // counts were tuned on the 28 m prototype
 
@@ -22,11 +22,12 @@ export function buildGrass({ rng, lite, instances }) {
     const [x, z] = sample(rng, 0.15); const gap = gapW(x, z), pw = pathW(x, z);
     const w = habitatW(x, z), o = outcropW(x, z);
     const patch = sstep(0.68, 0.88, fbm(x * 0.3 + 2, z * 0.3)) * 0.4 * (1 - w[1] * 0.9) * (1 - w[3] * 0.5);
-    const open = Math.max(w[4] * 0.75 * sstep(0.35, 0.6, fbm(x * 0.4 + 9, z * 0.4) + 0.2), w[6] * 0.35, w[5] * 0.3 * sstep(0.5, 0.7, fbm(x * 0.6, z * 0.6 + 4)));
+    const mw = meadowW(x, z);   // the meadow strip: a closed sward
+    const open = Math.max(w[4] * 0.75 * sstep(0.35, 0.6, fbm(x * 0.4 + 9, z * 0.4) + 0.2), mw * 0.97, w[6] * 0.35, w[5] * 0.3 * sstep(0.5, 0.7, fbm(x * 0.6, z * 0.6 + 4)));
     const dens = Math.max(gap, patch, open) * (1 - pw) * (puddleD(x, z) < 1.05 ? 0 : 1) * clearW(x, z)
       * (channelW(x, z) > 0.05 ? 0 : 1) * (1 - sstep(0.15, 0.4, 4 * o * (1 - o))) * (1 - sstep(0.1, 0.4, spoilW(x, z) + pitW(x, z))) * (1 - charcoalW(x, z) * 0.7);
     if (rnd() > dens) continue;
-    const s = rr(0.7, 1.35) * (0.55 + gap * 0.75); groundColor(x, z, tcol); tcol.offsetHSL(rr(-0.02, 0.02), 0.05, rr(0, 0.08));
+    const s = rr(0.7, 1.35) * (0.55 + Math.max(gap * 0.75, mw * 1.05)); groundColor(x, z, tcol); tcol.offsetHSL(rr(-0.02, 0.02), 0.05, rr(0, 0.08));
     list.push({ x, y: height(x, z), z, ry: rnd() * 6.28, sx: s, sy: s * rr(0.8, 1.3), sz: s, c: '#' + tcol.getHexString() });
   }
   instances(blade, toon({ vertexColors: true, side: THREE.DoubleSide }), list, { wind: { strength: 0.18, grass: true } });

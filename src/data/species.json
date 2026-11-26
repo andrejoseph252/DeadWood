@@ -347,6 +347,58 @@
     "honeyFungus": {
       "scientific": "Armillaria spp.",
       "common": "Honey fungus"
+    },
+    "hawthorn": {
+      "scientific": "Crataegus monogyna",
+      "common": "Hawthorn"
+    },
+    "blackthorn": {
+      "scientific": "Prunus spinosa",
+      "common": "Blackthorn"
+    },
+    "hazel": {
+      "scientific": "Corylus avellana",
+      "common": "Hazel"
+    },
+    "dogRose": {
+      "scientific": "Rosa canina",
+      "common": "Dog rose"
+    },
+    "yarrow": {
+      "scientific": "Achillea millefolium",
+      "common": "Yarrow"
+    },
+    "knapweed": {
+      "scientific": "Centaurea nigra",
+      "common": "Common knapweed"
+    },
+    "ribwort": {
+      "scientific": "Plantago lanceolata",
+      "common": "Ribwort plantain"
+    },
+    "ladyFern": {
+      "scientific": "Athyrium filix-femina",
+      "common": "Lady fern"
+    },
+    "polypody": {
+      "scientific": "Polypodium vulgare",
+      "common": "Common polypody"
+    },
+    "goldenSaxifrage": {
+      "scientific": "Chrysosplenium oppositifolium",
+      "common": "Opposite-leaved golden saxifrage"
+    },
+    "marshMarigold": {
+      "scientific": "Caltha palustris",
+      "common": "Marsh marigold"
+    },
+    "ramsons": {
+      "scientific": "Allium ursinum",
+      "common": "Ramsons"
+    },
+    "wavyHairGrass": {
+      "scientific": "Deschampsia flexuosa",
+      "common": "Wavy hair-grass"
     }
   },
   "animals": {

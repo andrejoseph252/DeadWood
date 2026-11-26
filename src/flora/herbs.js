@@ -26,7 +26,8 @@ export function buildFlowers({ rng, tex, instances, sprites }) {
 }
 
 // tall herbs: foxglove and rosebay willowherb spikes, nettle patch by the puddle
-export function buildTallHerbs({ rng, instances }) {
+// extraNettles: nettle records from other builders (the hedge's herb fringe), drawn with these
+export function buildTallHerbs({ rng, instances }, extraNettles = []) {
   const { rnd, rr, pick } = rng;
   const spikes = [], bells = [], foxgloves = [];
   const tall = (x, z, kind) => {
@@ -53,6 +54,7 @@ export function buildTallHerbs({ rng, instances }) {
     if (!(pasture || sett) || pathW(x, z) > 0.2 || channelW(x, z) > 0.05) continue;
     nettle.push({ x, y: height(x, z), z, ry: rnd() * 6, sx: 1, sy: rr(0.6, 1.1), sz: 1, c: pick(['#3f6e2a', '#386526']) }); n++;
   }
+  nettle.push(...extraNettles);
   // peacock caterpillars (Aglais io): grey silk tents with black larvae on sunny nettles in the old pasture
   const webs = [], larvae = [];
   nettle.filter((n) => habitatW(n.x, n.z)[4] > 0.5).slice(0, 7).forEach((n) => { const y = n.y + n.sy * 1.0; webs.push({ x: n.x, y, z: n.z, c: '#d8d4c8', s: 0.22 }); for (let k = 0; k < 4; k++) larvae.push({ x: n.x + rr(-0.06, 0.06), y: y + rr(0.02, 0.12), z: n.z + rr(-0.06, 0.06), c: '#1a1a1a', s: 0.06 }); });

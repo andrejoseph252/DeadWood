@@ -147,6 +147,18 @@ The plot grows in stages. **Stage A** is a 40 × 40 m map, x, z ∈ [−20, 20],
 - **Vertical scale:** trees keep the prototype's compressed heights (veteran beech ~10 m, plantation spruce ~12 m) so crowns stay readable from the map camera; ground features (wall, step, channel, pits) are at true scale.
 - **Known differences from the 60 m text:** the fallen log and the honey-fungus stump are ~10 m apart (section 3 has the stump at the log's west end); the prototype's three spruces were removed from the beech stand.
 
+### Stage B: the full 60 × 60 m map (built now)
+
+Stage B grows Stage A outward by 10 m on every side, x, z ∈ [−30, 30]. Everything inside the 40 m square keeps its position.
+
+- **South-east, the forest edge from the inside out:** pioneer belt (z ≈ 10.5–21), then the **hedge** or shrub mantle (z ≈ 21–25.5: hawthorn, blackthorn, hazel, dog rose and elder, with a nettle fringe on its inner side), then the **meadow strip** (the last ~4.5 m, with yarrow, knapweed, ribwort plantain and molehills). The buzzard hunts over it.
+- **East:** the windthrow continues with three more root plates (six in all), and the trunks now lie at full length.
+- **West:** the outcrop continues north along the west edge (x < ≈ −22 north of z ≈ 2), clear of the charcoal platform; the deer path fades out at its foot.
+- **South:** the stream runs on through the wall breach and leaves the plot through the south side at x ≈ 18.5.
+- **North:** more of the beech–oak stand west of the wall and of the plantation east of it.
+- **Performance:** instanced plants are split into 15 m chunks with bounding spheres, so chunks outside the view are not drawn.
+- **Still different from the original sketch:** the charcoal platform stays at (−13, −13), and the outcrop covers the whole west edge rather than z −12 to 12, because Stage A had already placed the spring at its foot.
+
 ---
 
 ## 4. Land history
@@ -546,7 +558,7 @@ Each step ends with screenshots from a fixed set of viewpoints, and with a check
 
 ### S2 — The 60 × 60 m terrain
 
-*Built first as Stage A (40 × 40 m, see section 3); the 60 m map follows.*
+*Built as Stage A (40 × 40 m), then Stage B (60 × 60 m, with chunked instancing); see section 3. The 60 fps check on an M2 still has to be done on real hardware.*
 
 
 - **Heightmap:** the NW → SE fall, plus:

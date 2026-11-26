@@ -10,7 +10,14 @@
 // Stumps from the 1990s thinning are separate records in STUMPS.
 import { createRng } from '../core/random.js';
 import plot from '../data/plot01.json' with { type: 'json' };
+import fauna from '../data/fauna.json' with { type: 'json' };
 import { MAP, HALF, SPOTS, inside, gapW, pathW, habitatW, wallX, streamD, STREAM, charcoalW, settBankW, outcropEdge, outcropW, PLATES, SPRING } from './fields.js';
+
+// the animals' routes as segments { x, z, dx, dz, len } for corridor checks
+const ROUTES = [[fauna.species.deer.stops, false], [fauna.species.fox.route, true], [fauna.species.badger.route, false]].flatMap(([pts, loop]) => {
+  const all = loop ? [...pts, pts[0]] : pts;
+  return all.slice(1).map(([x1, z1], i) => { const [x, z] = all[i], len = Math.hypot(x1 - x, z1 - z); return { x, z, dx: (x1 - x) / len, dz: (z1 - z) / len, len }; });
+});
 
 export function generateLayout(seed = MAP.layoutSeed) {
   const { rnd, rr } = createRng(seed);
@@ -18,8 +25,9 @@ export function generateLayout(seed = MAP.layoutSeed) {
   const stumps = [];
   const free = (x, z, r, f = 0.8) => trees.every((t) => Math.hypot(t.x - x, t.z - z) > Math.max(1.2, (t.r + r) * f));
   const keepIn = (x, z, r) => inside(x, z, Math.max(1.2, r * 0.45));
-  // open ground kept for the boar's wallow and rooting patch, where the sow, piglets and robin move
-  const clearOf = (x, z) => Math.hypot(x - SPOTS.boar[0], z - SPOTS.boar[1]) > 3.6 && pathW(x, z) < 0.05 && streamD(x, z) > 1.0 && Math.abs(x - wallX(z)) > 1.1 && settBankW(x, z) < 0.05
+  // open ground kept for the boar's wallow and rooting patch, where the sow, piglets and robin move, and corridors
+  // along the animals' routes (data/fauna.json), so a reshuffled forest never puts a trunk in an animal's way
+  const clearOf = (x, z) => Math.hypot(x - SPOTS.boar[0], z - SPOTS.boar[1]) > 3.6 && pathW(x, z) < 0.05 && ROUTES.every((s) => segD(x, z, s) > 1.1) && streamD(x, z) > 1.0 && Math.abs(x - wallX(z)) > 1.1 && settBankW(x, z) < 0.05
     && Math.hypot(x - MAP.antMound.x, z - MAP.antMound.z) > 1.6 && PLATES.every((p) => Math.hypot(x - p.x, z - p.z) > p.r + 1.2 && segD(x, z, p) > 0.9);
 
   // H2 spruce plantation (1962): rows N-S, 2 m planting thinned in the 1990s to ~2.2 x 2.6 m, gaps where trees died.
@@ -53,18 +61,18 @@ export function generateLayout(seed = MAP.layoutSeed) {
 
   // H1 old beech-oak stand: veterans with wide spacing, the odd oak (ivy on half of them), two coppice stools.
   let coppice = 0;
-  for (let i = 0; i < 2000; i++) {
+  for (let i = 0; i < 6000; i++) {
     const x = rr(-HALF + 1, HALF - 1), z = rr(-HALF + 1, HALF - 1), r = rr(3.8, 4.8);
     if (habitatW(x, z)[0] < 0.7 || charcoalW(x, z) > 0.2 || !clearOf(x, z) || !keepIn(x, z, r) || !free(x, z, r, 0.9)) continue;
     if (Math.hypot(x - plot.gap.x, z - plot.gap.z) < plot.gap.r + r * 0.7) continue;   // crowns stay off the gap
     const oak = rnd() < 0.18, far = Math.hypot(x - plot.gap.x, z - plot.gap.z) > 13;
     const t = { kind: oak ? 'oak' : 'beech', x, z, h: rr(9.5, 11.5), r };
     if (oak && rnd() < 0.5) t.ivy = true;
-    if (!oak && far && coppice < 2) { t.stems = 2 + coppice; coppice++; }
+    if (!oak && far && coppice < 4) { t.stems = 2 + (coppice % 2); coppice++; }
     trees.push(t);
   }
   // holly in the understorey of the beech stand
-  for (let i = 0, n = 0; i < 600 && n < 6; i++) {
+  for (let i = 0, n = 0; i < 2000 && n < 12; i++) {
     const x = rr(-HALF + 1, wallX(0) - 2), z = rr(-HALF + 1, HALF - 1), r = rr(1.2, 1.6);
     if (habitatW(x, z)[0] < 0.7 || gapW(x, z) > 0.1 || charcoalW(x, z) > 0.1 || !clearOf(x, z) || !keepIn(x, z, r)) continue;
     if (!trees.every((t) => Math.hypot(t.x - x, t.z - z) > (t.kind === 'holly' ? 3 : 1.6))) continue;
@@ -72,22 +80,22 @@ export function generateLayout(seed = MAP.layoutSeed) {
   }
 
   // H5 pioneer edge (former pasture, never planted): birch, rowan and a young oak.
-  for (let i = 0, n = 0; i < 600 && n < 9; i++) {
-    const x = rr(wallX(15) + 1.2, HALF - 1), z = rr(MAP.zones.windthrowSouth, HALF - 1);
+  for (let i = 0, n = 0; i < 1500 && n < 15; i++) {
+    const x = rr(wallX(15) + 1.2, HALF - 1), z = rr(MAP.zones.windthrowSouth, MAP.zones.hedgeNorth - 1);
     const kind = n % 3 === 1 ? 'rowan' : n === 5 ? 'oak' : 'birch';
     const r = kind === 'birch' ? rr(1.8, 2.2) : kind === 'rowan' ? rr(1.4, 1.7) : 2.2;
     if (habitatW(x, z)[4] < 0.55 || !clearOf(x, z) || !keepIn(x, z, r) || !free(x, z, r, 0.9)) continue;
     trees.push({ kind, x, z, h: kind === 'birch' ? rr(7, 8.8) : kind === 'rowan' ? rr(4.5, 5.5) : 5.5, r }); n++;
   }
   // H7 regrowth in the windthrow: a few young birches
-  for (let i = 0, n = 0; i < 400 && n < 3; i++) {
+  for (let i = 0, n = 0; i < 1000 && n < 7; i++) {
     const x = rr(wallX(5) + 1.5, HALF - 1), z = rr(MAP.zones.plantationSouth + 1, MAP.zones.windthrowSouth - 1), r = rr(1.2, 1.5);
     if (habitatW(x, z)[6] < 0.6 || !clearOf(x, z) || !keepIn(x, z, r) || !free(x, z, r, 1)) continue;
     trees.push({ kind: 'birch', x, z, h: rr(4.5, 5.5), r }); n++;
   }
   // H6 stunted oaks on the outcrop top
-  for (let i = 0, n = 0; i < 300 && n < 2; i++) {
-    const z = rr(4, HALF - 2), x = rr(-HALF + 1.4, outcropEdge(z) - 1.2), r = rr(1.9, 2.3);
+  for (let i = 0, n = 0; i < 800 && n < 5; i++) {
+    const z = rr(MAP.outcrop.zStart + 3, HALF - 2), x = rr(-HALF + 1.4, outcropEdge(z) - 1.2), r = rr(1.9, 2.3);
     if (outcropW(x, z) < 0.9 || Math.hypot(x - SPRING.x, z - SPRING.z) < 3 || !free(x, z, r, 1)) continue;
     trees.push({ kind: 'oak', x, z, h: rr(4.6, 5.4), r, stunted: true }); n++;
   }
@@ -96,7 +104,7 @@ export function generateLayout(seed = MAP.layoutSeed) {
   return { trees, stumps };
 }
 
-// distance from (x, z) to a windthrown trunk
+// distance from (x, z) to a segment { x, z, dx, dz (unit), len }: a windthrown trunk or a route leg
 function segD(x, z, p) {
   const t = Math.max(0, Math.min(p.len, (x - p.x) * p.dx + (z - p.z) * p.dz));
   return Math.hypot(x - p.x - p.dx * t, z - p.z - p.dz * t);

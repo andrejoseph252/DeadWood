@@ -52,6 +52,13 @@ const VIEWS = [
   // animals (frozen at their starting poses under ?still)
   { name: 'sett-badger', look: [7.4, -13.4], zoom: 4.5, canopy: false },
   { name: 'boar-robin', look: [6.8, 10], zoom: 4, canopy: false },
+  // Stage B (60 m ring)
+  { name: 'hedge', look: [20, 23], zoom: 2.2 },
+  { name: 'meadow', look: [18, 27], zoom: 2.6 },
+  { name: 'windthrow-east', look: [23, 5], zoom: 2 },
+  { name: 'outcrop-north', look: [-25, -6], zoom: 2 },
+  { name: 'plantation-north', look: [20, -23], zoom: 1.8 },
+  { name: 'beech-north', look: [-12, -23], zoom: 1.6, canopy: false },
 ];
 
 const args = process.argv.slice(2);

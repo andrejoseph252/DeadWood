@@ -1,12 +1,12 @@
 {
-  "_about": "Stage A map (40 x 40 m) of Plot 01, adapted from docs/world.md section 3. Metres; origin at the canopy-gap centre; +x east, +z south, +y up. Hand-placed features only: trees in the stands are generated from these by src/world/layout.js. See docs/world.md 'Stage A' for why positions differ from the 60 m sketch.",
-  "size": 40,
+  "_about": "Map of Plot 01 (60 x 60 m; Stage A was the central 40 x 40 m), adapted from docs/world.md section 3. Metres; origin at the canopy-gap centre; +x east, +z south, +y up. Hand-placed features only: trees in the stands are generated from these by src/world/layout.js. See docs/world.md section 3 (Stage A, Stage B) for why positions differ from the original sketch.",
+  "size": 60,
   "layoutSeed": 4271,
   "slope": { "_note": "ground falls NW -> SE; metres of fall per metre of (x + z)", "perM": 0.05 },
   "wall": { "_note": "x = x0 + a1 sin(f1 z + p1) + a2 sin(f2 z); collapsed dry-stone ridge between ancient woodland (west) and former pasture (east)", "x0": 11.4, "a1": 0.9, "f1": 0.35, "p1": 1, "a2": 0.4, "f2": 0.9, "height": 0.35, "halfWidth": 0.55 },
-  "outcrop": { "_note": "sandstone step along the west edge; x < edge(z) and z > zStart", "edge": -15.5, "zStart": 2, "height": 1.8 },
+  "outcrop": { "_note": "sandstone step along the west edge; x < edge(z) and z > zStart. South of z ~ 2 it stands further west (northEdge), clear of the charcoal platform", "edge": -15.5, "northEdge": -22, "zStart": -12, "height": 1.8 },
   "spring": { "x": -14.5, "z": 8, "r": 0.85 },
-  "stream": { "_note": "centre line from the spring, downstream", "points": [[-14.5, 8], [-11, 11], [-7, 14.5], [-2, 16.5], [3, 18], [9, 19.2], [13, 20.4]], "depth": 0.35, "halfWidth": 0.7 },
+  "stream": { "_note": "centre line from the spring, downstream", "points": [[-14.5, 8], [-11, 11], [-7, 14.5], [-2, 16.5], [3, 18], [9, 19.2], [13, 20.4], [16.6, 24.6], [18.6, 30.5]], "depth": 0.35, "halfWidth": 0.7 },
   "backwater": { "x": -5, "z": 15.9, "r": 1.1 },
   "charcoal": { "_note": "charcoal-burning platform, c. 1700-1860", "x": -13, "z": -13, "r": 5 },
   "sett": {
@@ -19,7 +19,10 @@
     "plates": [
       { "x": 14.8, "z": 1.8, "yaw": -0.73, "len": 9.5, "r": 1.2 },
       { "x": 15.6, "z": 6.4, "yaw": -0.87, "len": 10, "r": 1.35 },
-      { "x": 16.2, "z": 9.8, "yaw": -0.77, "len": 7, "r": 1.1 }
+      { "x": 16.2, "z": 9.8, "yaw": -0.77, "len": 7, "r": 1.1 },
+      { "x": 20.6, "z": 8.6, "yaw": -0.8, "len": 11, "r": 1.3 },
+      { "x": 25.0, "z": 7.6, "yaw": -0.74, "len": 6, "r": 1.15 },
+      { "x": 22.6, "z": 3.2, "yaw": -0.75, "len": 4.5, "r": 1.05 }
     ]
   },
   "trails": {
@@ -33,6 +36,8 @@
   "zones": {
     "_note": "boundaries east of the wall (z, metres); noise-perturbed by about +-1.5 m",
     "plantationSouth": -2.6,
-    "windthrowSouth": 10.5
+    "windthrowSouth": 10.5,
+    "hedgeNorth": 21,
+    "meadowNorth": 25.5
   }
 }
