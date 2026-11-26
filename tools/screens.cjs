@@ -43,12 +43,15 @@ const VIEWS = [
   { name: 'pioneer-edge', look: [15, 15], zoom: 2 },
   { name: 'stream', look: [-8, 13], zoom: 2 },
   { name: 'outcrop', look: [-17, 11], zoom: 2.2 },
-  // Stage A detail (close-ups of the micro-scenes)
-  { name: 'spring', look: [-13.5, 9], zoom: 3.6 },
-  { name: 'backwater', look: [-5, 16], zoom: 3.6 },
-  { name: 'root-plate', look: [15.2, 6], zoom: 3.4 },
-  { name: 'anvil', look: [13.8, -4.8], zoom: 4 },
-  { name: 'latrines', look: [10, -12], zoom: 3.4 },
+  // Stage A detail (close-ups of the micro-scenes; crowns hidden so the ground shows)
+  { name: 'spring', look: [-13.5, 9], zoom: 3.6, canopy: false },
+  { name: 'backwater', look: [-5, 16], zoom: 3.6, canopy: false },
+  { name: 'root-plate', look: [15.2, 6], zoom: 3.4, canopy: false },
+  { name: 'anvil', look: [13.8, -4.8], zoom: 4, canopy: false },
+  { name: 'latrines', look: [10, -12], zoom: 3.4, canopy: false },
+  // animals (frozen at their starting poses under ?still)
+  { name: 'sett-badger', look: [7.4, -13.4], zoom: 4.5, canopy: false },
+  { name: 'boar-robin', look: [6.8, 10], zoom: 4, canopy: false },
 ];
 
 const args = process.argv.slice(2);

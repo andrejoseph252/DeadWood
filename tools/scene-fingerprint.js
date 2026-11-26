@@ -1,14 +1,15 @@
 // Scene fingerprint: paste into the browser console on the running page (needs window.__rigs).
 // Hashes every static mesh (geometry, transform, materials, instance matrices and colours) and the lights,
 // skipping the animal rigs since they move. Equal hashes before and after a change mean the built scene is identical.
-// Reference (prototype as exported, default URL, no ?lite): { n: 311, hash: 2007053567 }
+// Reference (prototype as exported, default URL, no ?lite): { n: 311, hash: 2007053567 }. Every animal rig is skipped.
 (() => {
   const R = window.__rigs, scene = R.deer.root.parent;
-  const rigRoots = new Set([R.deer.root, R.fox.root, R.boar.root, R.hare.root, R.squirrel.root, R.jay.root, R.woodpecker.root, ...R.piglets.map((p) => p.root)]);
+  const rigRoots = new Set(Object.values(R).flat().map((r) => r.root));
+  const moving = (o) => o.isInstancedMesh && o.count === 50 && o.geometry.type === 'BoxGeometry';   // the ants
   const out = [];
   const sum = (a) => { let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * ((i % 7) + 1); return s; };
   const walk = (o) => {
-    if (rigRoots.has(o)) { out.push('RIG'); return; }
+    if (rigRoots.has(o) || moving(o)) { out.push('RIG'); return; }
     if (o.isMesh) {
       const g = o.geometry, m = Array.isArray(o.material) ? o.material : [o.material];
       out.push([

@@ -30,11 +30,12 @@ A forest ecology game with an academic feel. The player directs a small field st
 - `world/plot.js` — re-exports the fields and layout, plus tree-dependent fields (`canopyShade`, `nearKind`). Pure; the sim may import it.
 - `world/` (other files) — meshes: `ground.js` (terrain coloured by habitat, cut sides, water), `features.js` (wall, outcrop, stream stones, windthrow, sett, stumps), `props.js` (rocks, log, stump, ant mound), `kit.js` (stakes, string, quadrat, tags, camera trap).
 - `flora/` — `trees.js` (trees, saplings, ivy, foliage clumps), `shrubs.js`, `grass.js`, `herbs.js`, `litter.js` (chips, cones, twigs, moss), `fungi.js`.
-- `fauna/` — `parts.js` (ellipsoid / segment / pivot helpers), `rigs.js` (one `makeX()` per animal), `behaviours.js` (motion state machines), `index.js` (placement).
+- `fauna/` — `parts.js` (ellipsoid / segment / pivot helpers), `rigs.js` (mammals), `rigs-birds.js`, `rigs-small.js` (amphibians, reptiles, insects), `motion.js` (steering, flight arcs, wing lift), `behaviours.js` (the prototype's animals), `behaviours-more.js` (the rest), `index.js` (placement and the Follow list).
+- `world/obstacles.js` — where animals can't walk (trunks, water, wall, rocks, root plates, logs). Pure; `test/fauna.test.js` checks every route in `data/fauna.json` against it.
 - `render/` — `pipeline.js` (renderer, low-res target, pixel post pass), `camera.js` (map controls, follow, keyboard), `lights.js`, `materials.js` (toon ramp), `wind.js`, `textures.js`, `instancing.js`.
 - `ui/` — keyboard state, camera toolbar.
 - `sim/` — the headless simulation (empty until after the Setting Build).
-- `data/` — `map.json` (Stage A map: wall, stream, outcrop, sett, windthrow…), `plot01.json` (hand-placed heart around the gap), `species.json` (names, render params). Setting Build S1 adds `habitats.json`, `interactions.json`, `history.json` and `map.json`, transcribed from `world.md`.
+- `data/` — `fauna.json` (species, what each is doing on the June evening, routes), `map.json` (Stage A map: wall, stream, outcrop, sett, windthrow…), `plot01.json` (hand-placed heart around the gap), `species.json` (names, render params). Setting Build S1 adds `habitats.json`, `interactions.json`, `history.json` and `map.json`, transcribed from `world.md`.
 
 **Headless boundary:** `sim/`, `world/plot.js` (with `fields.js` and `layout.js`) and `core/` must not import three.js or any package. `test/boundaries.test.js` walks their import graphs and fails if they do.
 

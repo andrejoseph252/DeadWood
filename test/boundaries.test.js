@@ -7,7 +7,7 @@ import { dirname, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const HEADLESS = ['src/sim/index.js', 'src/world/plot.js', 'src/core/random.js', 'src/core/noise.js'];
+const HEADLESS = ['src/sim/index.js', 'src/world/plot.js', 'src/world/obstacles.js', 'src/core/random.js', 'src/core/noise.js'];
 const IMPORT_RE = /\b(?:import|export)\s[^'"`]*?from\s*['"]([^'"]+)['"]|\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)|\bimport\s+['"]([^'"]+)['"]/g;
 
 function importsOf(file) {

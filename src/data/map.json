@@ -26,7 +26,7 @@
     "_note": "narrow worn trails besides the main deer path: [points], half-width in metres",
     "deerToStream": { "w": 0.45, "points": [[-6.0, 0.4], [-9.0, 1.8], [-8.8, 6.2], [-7.6, 10.8], [-6.3, 14.6]] },
     "badgerToLatrines": { "w": 0.22, "points": [[8.8, -13.4], [10.0, -12.4], [10.8, -11.6]] },
-    "badgerToGap": { "w": 0.22, "points": [[6.0, -13.3], [4.6, -9.6], [3.2, -6.2]] }
+    "badgerToGap": { "w": 0.22, "points": [[6.0, -13.3], [5.0, -10.8], [5.7, -8.2], [4.0, -6.0], [2.6, -4.9]] }
   },
   "latrines": [[11.0, -11.2], [10.9, -12.1], [11.1, -13.0], [10.8, -10.3]],
   "antMound": { "_note": "red wood ant mound at the sunny south edge of the plantation", "x": 14.9, "z": -2.5, "r": 0.9 },

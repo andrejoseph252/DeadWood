@@ -6,8 +6,9 @@ import { C, toon, tm } from '../render/materials.js';
 import { addBranch } from '../flora/trees.js';
 import { MAP, height } from './plot.js';
 
-// where the fallen log lies (the squirrel runs along it)
-export const LOG = { x: -3, z: 6.8, len: 6.2, r: 0.42, yaw: -0.35 };
+// where the fallen log lies (the squirrel runs along it); positions shared with the walkability checks
+import { LOG, STUMP, ROCKS } from './obstacles.js';
+export { LOG };
 
 // a mossy rock; stone: [grey, grey, grey] body colours, lichen: crust colour on the sides; squash: height factor
 export function makeRock({ scene, rng }, x, z, s, { stone = ['#7d807a', '#8a8c85', '#6e716c'], lichen = '#a7b38f', squash = 0.7, sink = 0.15 } = {}) {
@@ -25,7 +26,7 @@ export function buildDeadWood({ scene, rng, instances }) {
   const { rnd, rr, pick } = rng;
 
   const rock = (x, z, s) => makeRock({ scene, rng }, x, z, s);
-  [[-7, 2.5, 0.85], [-6.1, 3.4, 0.42], [8.5, 9.4, 0.9], [1.6, 9.6, 0.45], [-10.5, -11, 0.7], [11.8, -5.2, 0.6], [-2.6, -9, 0.38], [12.4, 12.4, 0.5], [-12.6, 12.6, 0.55], [6.2, 3.6, 0.3]].forEach(([x, z, s]) => rock(x, z, s));
+  ROCKS.forEach(([x, z, s]) => rock(x, z, s));
 
   // fallen log, mossy on top, with bracket fungi along one side
   const { len, r } = LOG;

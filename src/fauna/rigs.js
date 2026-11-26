@@ -151,3 +151,22 @@ export function makeWoodpecker() {
   const tail = pivot(body, [0.01, 0, 0]); ell(tail, black, [0.01, -0.04, 0], [0.015, 0.05, 0.025]);
   return { kind: 'woodpecker', root, body, head, tail, legs: [] };
 }
+
+// the badger: low, wedge-shaped, grey with a black-and-white striped face
+export function makeBadger() {
+  const M = { grey: tm('#8a8680'), dark: tm('#4a4744'), black: tm('#121110'), white: tm('#efece6'), nose: tm('#1a1818') };
+  const root = new THREE.Group(), body = pivot(root, [0, 0, 0]);
+  ell(body, M.grey, [0.06, 0.24, 0], [0.33, 0.15, 0.17]); ell(body, M.grey, [-0.18, 0.23, 0], [0.18, 0.13, 0.14]);
+  ell(body, M.dark, [0.02, 0.15, 0], [0.32, 0.07, 0.15]);   // dark belly and flanks low down
+  const head = pivot(body, [-0.34, 0.22, 0]); head.rotation.z = 0.25;
+  ell(head, M.white, [-0.06, 0, 0], [0.11, 0.075, 0.075]);
+  const snout = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.14, 8), M.white); snout.rotation.z = Math.PI / 2; snout.position.set(-0.17, -0.02, 0); snout.castShadow = true; head.add(snout);
+  for (const s of [-1, 1]) ell(head, M.black, [-0.07, 0.01, 0.035 * s], [0.13, 0.03, 0.022], [0, 0, 0.12]);   // the stripes through the eyes
+  ell(head, M.nose, [-0.24, -0.025, 0], [0.022, 0.02, 0.025]);
+  const ears = [];
+  for (const s of [-1, 1]) { const e = pivot(head, [0.02, 0.05, 0.06 * s]); ell(e, M.black, [0, 0.015, 0], [0.018, 0.022, 0.02]); ell(e, M.white, [0, 0.03, 0], [0.012, 0.01, 0.018]); ears.push(e); }
+  const tail = pivot(body, [0.38, 0.27, 0]); ell(tail, M.grey, [0.04, -0.02, 0], [0.06, 0.03, 0.04], [0, 0, -0.3]);
+  const legs = [];
+  for (const s of [-1, 1]) for (const lx of [-0.2, 0.22]) { const L = pivot(body, [lx, 0.17, 0.1 * s]); seg(L, M.black, [0, 0, 0], [-0.02, -0.16, 0], 0.045, 0.035); ell(L, M.black, [-0.04, -0.165, 0], [0.045, 0.018, 0.03]); legs.push(L); }
+  return { kind: 'badger', root, body, head, ears, tail, legs };
+}

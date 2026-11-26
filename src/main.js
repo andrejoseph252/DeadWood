@@ -62,7 +62,7 @@ buildDetails(ctx);
 ctx.sprites(ctx.tex.dot, [...herbs.webs, ...herbs.larvae]);   // peacock caterpillar tents on the nettles
 buildFungi(ctx);
 buildResearchKit(ctx);
-const fauna = createFauna(ctx);
+const fauna = createFauna(ctx, { foxgloves: herbs.foxgloves });
 window.__rigs = fauna.rigs;   // debugging handle (tools/scene-fingerprint.js uses it)
 window.__seed = seed;
 
@@ -91,7 +91,7 @@ new ResizeObserver(resize).observe(container); resize();
 const still = params.has('still');
 let last = performance.now(), elapsed = 0;
 pipeline.renderer.setAnimationLoop((now) => {
-  const dt = still ? 0 : Math.min((now - last) / 1000, 0.05); last = now; elapsed += dt;
+  const dt = still ? 0 : Math.max(0, Math.min((now - last) / 1000, 0.05)); last = now; elapsed += dt;   // the first frame can be stamped before `last`
   uTime.value = reduceMotion ? elapsed * 0.3 : elapsed;
   fauna.update(dt, elapsed);
   rig.update(dt);

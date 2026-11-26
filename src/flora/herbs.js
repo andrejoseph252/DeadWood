@@ -28,9 +28,10 @@ export function buildFlowers({ rng, tex, instances, sprites }) {
 // tall herbs: foxglove and rosebay willowherb spikes, nettle patch by the puddle
 export function buildTallHerbs({ rng, instances }) {
   const { rnd, rr, pick } = rng;
-  const spikes = [], bells = [];
+  const spikes = [], bells = [], foxgloves = [];
   const tall = (x, z, kind) => {
     const gy = height(x, z), h = kind === 'fox' ? rr(1.0, 1.5) : rr(1.2, 1.7);
+    if (kind === 'fox') foxgloves.push([x, z, h]);
     spikes.push({ x, y: gy, z, sx: 1, sy: h, sz: 1, c: '#4f7d2c' });
     // foxglove flowers in June; rosebay willowherb is still in bud (it flowers from July)
     for (let k = 0; k < 10; k++) { const a = k * 2.1, fox = kind === 'fox'; if (!fox && k < 5) continue; bells.push({ x: x + Math.cos(a) * (fox ? 0.07 : 0.04), y: gy + h * (0.45 + k * 0.055), z: z + Math.sin(a) * (fox ? 0.07 : 0.04), s: fox ? 1 : 0.5, c: fox ? (k % 3 ? '#d0609f' : '#e993c4') : (k % 2 ? '#7a4a5a' : '#8a5a6a') }); }
@@ -60,7 +61,7 @@ export function buildTallHerbs({ rng, instances }) {
   NP.push(0.01, 0, 0, -0.01, 0, 0, 0, 1.05, 0); NN.push(0, 1, 0, 0, 1, 0, 0, 1, 0);
   ng.setAttribute('position', new THREE.Float32BufferAttribute(NP, 3)); ng.setAttribute('normal', new THREE.Float32BufferAttribute(NN, 3));
   instances(ng, toon({ side: THREE.DoubleSide }), nettle, { cast: true, wind: { strength: 0.06 } });
-  return { webs, larvae };
+  return { webs, larvae, foxgloves };
 }
 
 export function buildFerns({ rng, instances }) {

@@ -10,7 +10,7 @@
 // Stumps from the 1990s thinning are separate records in STUMPS.
 import { createRng } from '../core/random.js';
 import plot from '../data/plot01.json' with { type: 'json' };
-import { MAP, HALF, inside, gapW, pathW, habitatW, wallX, streamD, STREAM, charcoalW, settBankW, outcropEdge, outcropW, PLATES, SPRING } from './fields.js';
+import { MAP, HALF, SPOTS, inside, gapW, pathW, habitatW, wallX, streamD, STREAM, charcoalW, settBankW, outcropEdge, outcropW, PLATES, SPRING } from './fields.js';
 
 export function generateLayout(seed = MAP.layoutSeed) {
   const { rnd, rr } = createRng(seed);
@@ -18,7 +18,8 @@ export function generateLayout(seed = MAP.layoutSeed) {
   const stumps = [];
   const free = (x, z, r, f = 0.8) => trees.every((t) => Math.hypot(t.x - x, t.z - z) > Math.max(1.2, (t.r + r) * f));
   const keepIn = (x, z, r) => inside(x, z, Math.max(1.2, r * 0.45));
-  const clearOf = (x, z) => pathW(x, z) < 0.05 && streamD(x, z) > 1.0 && Math.abs(x - wallX(z)) > 1.1 && settBankW(x, z) < 0.05
+  // open ground kept for the boar's wallow and rooting patch, where the sow, piglets and robin move
+  const clearOf = (x, z) => Math.hypot(x - SPOTS.boar[0], z - SPOTS.boar[1]) > 3.6 && pathW(x, z) < 0.05 && streamD(x, z) > 1.0 && Math.abs(x - wallX(z)) > 1.1 && settBankW(x, z) < 0.05
     && Math.hypot(x - MAP.antMound.x, z - MAP.antMound.z) > 1.6 && PLATES.every((p) => Math.hypot(x - p.x, z - p.z) > p.r + 1.2 && segD(x, z, p) > 0.9);
 
   // H2 spruce plantation (1962): rows N-S, 2 m planting thinned in the 1990s to ~2.2 x 2.6 m, gaps where trees died.

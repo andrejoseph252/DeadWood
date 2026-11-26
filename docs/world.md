@@ -617,6 +617,11 @@ Each step ends with screenshots from a fixed set of viewpoints, and with a check
   - #20: woodpecker at a cone anvil
 - Behaviours are driven by data where reasonable: activity times, habitats and routes.
 - **Done when:** a five-minute unattended camera tour shows at least eight species moving with believable behaviour, and no animal walks through trees, rocks or water.
+- **Status (Stage A, 40 m): first pass built.** The scene is set on a **June evening, about 20:30**, the hour when most of the cast is plausibly out (`src/data/fauna.json` says what each animal is doing then). Built:
+  - home ranges and routes for the existing rigs: the deer walks the path from the outcrop's foot to the windthrow and browses an oak sapling (#1); the fox patrols over the wall into the pioneer edge and pounces in the grass; the woodpecker flies between the dead beech and its cone anvil (#20);
+  - new rigs: badger (out of the sett, scratching, foraging along its trail, #13), tawny owl (roosting in a holly), robin (following the rooting boar, #10–11), wren (at its root plate), nuthatch (head-down on the oak), buzzard (soaring, then perching on a snag to watch the grass, #8), common frog, fire-salamander larvae in the backwater, common lizard (basking stone), slow worm, speckled wood, beautiful demoiselles, golden-ringed dragonfly, bumblebees on the foxgloves (#38) and wood ants up a spruce (#33);
+  - `src/world/obstacles.js` and `test/fauna.test.js`: every route is checked against trunks, rocks, the wall, root plates, logs and water.
+- **Not in June:** the jay caches acorns in September–October (#3) and peacock and fritillary adults fly from July, so they wait for the seasons step; bats emerge after sunset and come with S6.
 
 ### S6 — Time of day
 

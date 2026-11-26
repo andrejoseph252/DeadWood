@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { C, toon, tm } from '../render/materials.js';
 import { makeRock } from './props.js';
+import { BOULDERS } from './obstacles.js';
 import { HALF, TREES, STUMPS, PLATES, SETT, STREAM, height, wallX, streamD, outcropEdge, pathZ, MAP } from './plot.js';
 
 const GREY = ['#8a867c', '#76726a', '#9b968a'], MOSS = ['#3f6b22', '#4e7a2a', '#5d8a2f', '#466f26'];
@@ -34,7 +35,7 @@ function buildWall({ rng, instances }) {
 function buildOutcrop(ctx) {
   const { rr } = ctx.rng, z0 = MAP.outcrop.zStart + 0.8;
   for (let z = z0; z < HALF - 0.6; z += rr(1.1, 1.6)) { const x = outcropEdge(z) + rr(-0.35, 0.05); makeRock(ctx, x, z, rr(0.85, 1.25), { ...SANDSTONE, sink: -0.1 }); }
-  for (let i = 0; i < 9; i++) { const z = rr(z0, HALF - 0.8), x = outcropEdge(z) + rr(0.9, 2.4); if (streamD(x, z) < 1.2) continue; makeRock(ctx, x, z, rr(0.3, 0.6), SANDSTONE); }
+  for (const [x, z, s] of BOULDERS) makeRock(ctx, x, z, s, SANDSTONE);
   for (let i = 0; i < 6; i++) { const z = rr(z0 + 1, HALF - 1), x = rr(-HALF + 0.8, outcropEdge(z) - 1.4); makeRock(ctx, x, z, rr(0.4, 0.75), { ...SANDSTONE, squash: 0.35, sink: 0 }); }
 }
 
