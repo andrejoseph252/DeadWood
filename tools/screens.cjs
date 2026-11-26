@@ -6,7 +6,8 @@
 //
 // Needs `npm run build` first and Playwright with Chromium (pre-installed in Claude Code cloud sessions;
 // elsewhere: `npm i -g playwright && npx playwright install chromium`).
-// Shots use ?still, so time is frozen and two runs of the same build give the same pixels.
+// Shots use ?still, so time is frozen and two runs of the same build give the same pixels. The page loads once per
+// viewport size and the camera moves between viewpoints through the page's window.__view hook.
 // Exit code 1 if the page logs an error, the same seed builds a different scene, or (with --compare)
 // any shot differs from its baseline. A difference is not always wrong: a step that is meant to change
 // the scene will differ, and then the shots are for a person to look at.
@@ -24,12 +25,24 @@ const plot = require(path.join(ROOT, 'src/data/plot01.json'));
 // The fixed viewpoint set. Add to it as the world grows (world.md S8 asks for 12); never silently change an
 // existing entry, or old baselines stop being comparable.
 const VIEWS = [
-  { name: 'overview', q: '' },
-  { name: 'overview-phone', q: '', size: [390, 780] },
-  { name: 'gap', q: `look=${plot.gap.x},${plot.gap.z}&zoom=2.2` },
-  { name: 'puddle', q: `look=${plot.puddle.x},${plot.puddle.z}&zoom=3.5` },
-  { name: 'log', q: 'look=-3,6.8&zoom=3.5' },
-  { name: 'corner-nw', q: 'look=-11,-11&zoom=2.4' },
+  // s0 (28 m prototype); kept as they were
+  { name: 'overview' },
+  { name: 'overview-phone', size: [390, 780] },
+  { name: 'gap', look: [plot.gap.x, plot.gap.z], zoom: 2.2 },
+  { name: 'puddle', look: [plot.puddle.x, plot.puddle.z], zoom: 3.5 },
+  { name: 'log', look: [-3, 6.8], zoom: 3.5 },
+  { name: 'corner-nw', look: [-11, -11], zoom: 2.4 },
+  // Stage A (40 m)
+  { name: 'overview-floor', canopy: false },
+  { name: 'beech-wood', look: [-8, -6], zoom: 1.6, canopy: false },
+  { name: 'charcoal', look: [-12, -13], zoom: 2.4 },
+  { name: 'sett', look: [7.4, -14], zoom: 2.8 },
+  { name: 'wall', look: [11, -6], zoom: 2.4 },
+  { name: 'plantation', look: [16, -11], zoom: 1.8 },
+  { name: 'windthrow', look: [16, 5], zoom: 2 },
+  { name: 'pioneer-edge', look: [15, 15], zoom: 2 },
+  { name: 'stream', look: [-8, 13], zoom: 2 },
+  { name: 'outcrop', look: [-17, 11], zoom: 2.2 },
 ];
 
 const args = process.argv.slice(2);
@@ -66,15 +79,17 @@ const fingerprintSrc = fs.readFileSync(path.join(__dirname, 'scene-fingerprint.j
     return page;
   }
 
-  // 1. shots
+  // 1. shots: one page per viewport size; the camera moves through window.__view
   const shots = {};
-  for (const v of VIEWS) {
-    const page = await open(v.q, v.size);
-    shots[v.name] = await page.screenshot({ path: path.join(outDir, v.name + '.png') });
+  for (const size of [...new Set(VIEWS.map((v) => (v.size || [1280, 800]).join('x')))]) {
+    const [w, h] = size.split('x').map(Number), page = await open('', [w, h]);
+    for (const v of VIEWS.filter((v) => (v.size || [1280, 800]).join('x') === size)) {
+      await page.evaluate(([look, zoom, canopy]) => window.__view(look ? look[0] : null, look ? look[1] : null, zoom, canopy), [v.look || null, v.zoom ?? null, v.canopy !== false]);
+      await page.waitForTimeout(800);
+      shots[v.name] = await page.screenshot({ path: path.join(outDir, v.name + '.png') });
+    }
     await page.close();
   }
-  console.log(`saved ${VIEWS.length} shots to docs/screens/${set}/`);
-
   // 2. determinism: the same seed must build the same scene, and frozen frames must match pixel for pixel
   const fp = async (q) => { const p = await open(q); const r = await p.evaluate(fingerprintSrc); const img = await p.screenshot(); await p.close(); return { ...r, img }; };
   const a = await fp(''), b = await fp('');

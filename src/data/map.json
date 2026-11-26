@@ -1,0 +1,31 @@
+{
+  "_about": "Stage A map (40 x 40 m) of Plot 01, adapted from docs/world.md section 3. Metres; origin at the canopy-gap centre; +x east, +z south, +y up. Hand-placed features only: trees in the stands are generated from these by src/world/layout.js. See docs/world.md 'Stage A' for why positions differ from the 60 m sketch.",
+  "size": 40,
+  "layoutSeed": 4271,
+  "slope": { "_note": "ground falls NW -> SE; metres of fall per metre of (x + z)", "perM": 0.05 },
+  "wall": { "_note": "x = x0 + a1 sin(f1 z + p1) + a2 sin(f2 z); collapsed dry-stone ridge between ancient woodland (west) and former pasture (east)", "x0": 11.4, "a1": 0.9, "f1": 0.35, "p1": 1, "a2": 0.4, "f2": 0.9, "height": 0.35, "halfWidth": 0.55 },
+  "outcrop": { "_note": "sandstone step along the west edge; x < edge(z) and z > zStart", "edge": -15.5, "zStart": 2, "height": 1.8 },
+  "spring": { "x": -14.5, "z": 8, "r": 0.85 },
+  "stream": { "_note": "centre line from the spring, downstream", "points": [[-14.5, 8], [-11, 11], [-7, 14.5], [-2, 16.5], [3, 18], [9, 19.2], [13, 20.4]], "depth": 0.35, "halfWidth": 0.7 },
+  "backwater": { "x": -5, "z": 15.9, "r": 1.1 },
+  "charcoal": { "_note": "charcoal-burning platform, c. 1700-1860", "x": -13, "z": -13, "r": 5 },
+  "sett": {
+    "_note": "badger sett dug into a bank near the wall",
+    "bank": { "x": 7.4, "z": -15.8, "rx": 4.4, "rz": 2.2, "h": 1.3 },
+    "entrances": [[4.6, -14.2], [6.0, -13.9], [7.4, -13.8], [8.8, -13.9], [10.0, -14.3]]
+  },
+  "windthrow": {
+    "_note": "spruce thrown by the Jan 2018 storm; trunks point NE (yaw: radians, 0 = +x, negative turns toward -z = north)",
+    "plates": [
+      { "x": 14.8, "z": 1.8, "yaw": -0.73, "len": 9.5, "r": 1.2 },
+      { "x": 15.6, "z": 6.4, "yaw": -0.87, "len": 10, "r": 1.35 },
+      { "x": 16.2, "z": 9.8, "yaw": -0.77, "len": 7, "r": 1.1 }
+    ]
+  },
+  "antMound": { "_note": "red wood ant mound at the sunny south edge of the plantation", "x": 14.9, "z": -2.5, "r": 0.9 },
+  "zones": {
+    "_note": "boundaries east of the wall (z, metres); noise-perturbed by about +-1.5 m",
+    "plantationSouth": -2.6,
+    "windthrowSouth": 10.5
+  }
+}

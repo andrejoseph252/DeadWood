@@ -133,6 +133,20 @@ This is the south-east margin. From the inside out:
 - **Herb fringe:** a strip of nettles and tall herbs along the hedge.
 - **Meadow (M):** the last 5 m of the plot. The meadow continues beyond the boundary string.
 
+### Stage A: the 40 × 40 m map (built now)
+
+The plot grows in stages. **Stage A** is a 40 × 40 m map, x, z ∈ [−20, 20], with the canopy gap at the centre. It keeps the land, history and habitats above but rearranges them to fit a smaller square, so it is a sibling of the 60 m sketch, not a window onto it. Positions are in `src/data/map.json`, and the brief for the small details of each habitat is `docs/stage-a-details.md`.
+
+- **Origin:** the gap centre at (0.5, 1), which is where the prototype's gap already was, so the whole hand-placed heart (log, stump, puddle, saplings, animals) keeps its coordinates.
+- **The wall** runs N–S at x ≈ 11 (±1 m), so the ancient-woodland side (west) is larger than the former-pasture side (east). The stream cuts through it near the south edge.
+- **West of the wall (H1):** the beech–oak stand around the gap, the charcoal platform at (−13, −13) and the badger sett in a bank at (7.4, −15.8) close to the wall.
+- **South-west:** the outcrop (H6) along x < −15.5, z > 2; the spring at its foot (−14.5, 8); the stream (H4) runs south-east with alder and ash, and a backwater at (−5, 15.9).
+- **East of the wall:** the spruce plantation (H2) north of z ≈ −2.6, the windthrow (H7) from there to z ≈ 10.5 with three root plates, and the pioneer edge (H5) in the south-east. The hedge and meadow strip come with the 60 m map.
+- **The deer path** keeps its prototype course through the gap, then bends west along the outcrop's north foot and east between the plantation and the windthrow.
+- **Ant mound** at (14.9, −2.5), on the plantation's sunny south edge.
+- **Vertical scale:** trees keep the prototype's compressed heights (veteran beech ~10 m, plantation spruce ~12 m) so crowns stay readable from the map camera; ground features (wall, step, channel, pits) are at true scale.
+- **Known differences from the 60 m text:** the fallen log and the honey-fungus stump are ~10 m apart (section 3 has the stump at the log's west end); the prototype's three spruces were removed from the beech stand.
+
 ---
 
 ## 4. Land history
@@ -531,6 +545,9 @@ Each step ends with screenshots from a fixed set of viewpoints, and with a check
 - **Done when:** `npm run validate` passes and the build imports the data.
 
 ### S2 — The 60 × 60 m terrain
+
+*Built first as Stage A (40 × 40 m, see section 3); the 60 m map follows.*
+
 
 - **Heightmap:** the NW → SE fall, plus:
   - the outcrop step

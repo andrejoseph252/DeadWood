@@ -9,13 +9,14 @@ const startOffset = () => new THREE.Vector3().setFromSphericalCoords(90, THREE.M
 // half: half the plot width (the target is kept inside the plot); keys: a Set of pressed keys (lower case)
 export function createCameraRig(domElement, { half, keys }) {
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 300);
-  camera.position.copy(startOffset());
+  const OVERVIEW = 12.4 / half;   // the view was framed for a 28 m plot; zoom out to fit this one
+  camera.position.copy(startOffset()); camera.zoom = OVERVIEW;
   const controls = new MapControls(camera, domElement);
   controls.target.set(0, 0.5, 0);
   controls.enableDamping = true; controls.dampingFactor = 0.1;
   controls.screenSpacePanning = false; controls.zoomToCursor = true; controls.zoomSpeed = 1.2;
   controls.minPolarAngle = THREE.MathUtils.degToRad(15); controls.maxPolarAngle = THREE.MathUtils.degToRad(72);
-  controls.minZoom = 0.7; controls.maxZoom = 6;
+  controls.minZoom = OVERVIEW * 0.7; controls.maxZoom = 6;
 
   let follow = null, zoomGoal = null, rotGoal = 0, rotDone = 0, panGoal = null;
   let onFollowReleased = () => {};
@@ -56,8 +57,9 @@ export function createCameraRig(domElement, { half, keys }) {
   }
 
   return {
-    camera, controls, update, setAspect,
-    overview() { follow = null; zoomGoal = 1; panGoal = new THREE.Vector3(0, 0.5, 0); },
+    camera, controls, update, setAspect, overviewZoom: OVERVIEW,
+    overview() { follow = null; zoomGoal = OVERVIEW; panGoal = new THREE.Vector3(0, 0.5, 0); },
+    goTo(x, z, zoom) { follow = null; zoomGoal = zoom; panGoal = new THREE.Vector3(x, 0.5, z); },
     follow(object) { follow = object; zoomGoal = 3.2; },
     rotateBy(eighths) { rotGoal += eighths * Math.PI / 4; },
     lookAt(x, y, z) { controls.target.set(x, y, z); camera.position.copy(controls.target).add(startOffset()); },

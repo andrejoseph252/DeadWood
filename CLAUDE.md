@@ -25,18 +25,23 @@ A forest ecology game with an academic feel. The player directs a small field st
 ## Module map (`src/`)
 - `main.js` — wires everything together and runs the builders **in a fixed order** (see below).
 - `core/` — seeded random (`random.js`) and noise (`noise.js`). Pure.
-- `world/plot.js` — layout and ground fields (`height`, `gapW`, `pathW`, `puddleD`, `canopyShade`…). Pure; the sim may import it.
-- `world/` (other files) — meshes: `ground.js` (terrain, cut sides, puddle), `props.js` (rocks, log, stump, ant mound), `kit.js` (stakes, string, quadrat, tags, camera trap).
+- `world/fields.js` — ground fields of the map (`height`, `habitatW`, `streamD`, `wallX`, `outcropW`, `pathW`, `gapW`…). Pure.
+- `world/layout.js` — the seeded tree layout (records with ids) from the habitat rules. Pure; uses its own random stream (`map.layoutSeed`), so builder changes don't move the forest.
+- `world/plot.js` — re-exports the fields and layout, plus tree-dependent fields (`canopyShade`, `nearKind`). Pure; the sim may import it.
+- `world/` (other files) — meshes: `ground.js` (terrain coloured by habitat, cut sides, water), `features.js` (wall, outcrop, stream stones, windthrow, sett, stumps), `props.js` (rocks, log, stump, ant mound), `kit.js` (stakes, string, quadrat, tags, camera trap).
 - `flora/` — `trees.js` (trees, saplings, ivy, foliage clumps), `shrubs.js`, `grass.js`, `herbs.js`, `litter.js` (chips, cones, twigs, moss), `fungi.js`.
 - `fauna/` — `parts.js` (ellipsoid / segment / pivot helpers), `rigs.js` (one `makeX()` per animal), `behaviours.js` (motion state machines), `index.js` (placement).
 - `render/` — `pipeline.js` (renderer, low-res target, pixel post pass), `camera.js` (map controls, follow, keyboard), `lights.js`, `materials.js` (toon ramp), `wind.js`, `textures.js`, `instancing.js`.
 - `ui/` — keyboard state, camera toolbar.
 - `sim/` — the headless simulation (empty until after the Setting Build).
-- `data/` — `plot01.json` (hand-placed starting layout), `species.json` (names, render params). Setting Build S1 adds `habitats.json`, `interactions.json`, `history.json` and `map.json`, transcribed from `world.md`.
+- `data/` — `map.json` (Stage A map: wall, stream, outcrop, sett, windthrow…), `plot01.json` (hand-placed heart around the gap), `species.json` (names, render params). Setting Build S1 adds `habitats.json`, `interactions.json`, `history.json` and `map.json`, transcribed from `world.md`.
 
-**Headless boundary:** `sim/`, `world/plot.js` and `core/` must not import three.js or any package. `test/boundaries.test.js` walks their import graphs and fails if they do.
+**Headless boundary:** `sim/`, `world/plot.js` (with `fields.js` and `layout.js`) and `core/` must not import three.js or any package. `test/boundaries.test.js` walks their import graphs and fails if they do.
 
 **Seeded build order:** every builder draws from one shared random stream. Reordering builders in `main.js`, or adding or removing random draws in one, moves everything built after it. That's fine when intended, but a pure refactor should leave the scene identical. To check: `npm run screens` prints the scene fingerprint (`tools/scene-fingerprint.js`: a hash of every static mesh's geometry, transform, material and instance data, skipping animal rigs; you can also paste it into the browser console). Compare before and after.
+
+## Debug URL parameters
+`?seed=N` · `?still` (freeze time) · `?canopy=off` (hide tree crowns) · `?debug=habitats` (colour the ground by habitat) · `?pix=N` · `?zoom=N` · `?look=x,z` · `?lite`
 
 ## Gotcha from the prototype phase
 When published as a claude.ai artifact, the page's content-security policy blocks `fetch` of `data:` URIs. Load assets as separate same-origin files. (Not an issue on GitHub Pages, but keep assets as normal files anyway.)

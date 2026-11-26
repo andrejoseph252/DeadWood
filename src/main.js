@@ -1,4 +1,4 @@
-// Plot 01: a 28 m square of mixed forest around a sunlit gap, rendered as pixel art from a real 3D scene.
+// Plot 01: a 40 m square of Central European forest around a sunlit gap, rendered as pixel art from a real 3D scene.
 // 1 unit = 1 m. This file wires the pieces together; see CLAUDE.md for the module map.
 import { createRng } from './core/random.js';
 import { HALF, height } from './world/plot.js';
@@ -10,6 +10,7 @@ import { createInstancing } from './render/instancing.js';
 import { uTime } from './render/wind.js';
 import { buildGround } from './world/ground.js';
 import { buildDeadWood, buildAntMound } from './world/props.js';
+import { buildFeatures } from './world/features.js';
 import { buildResearchKit } from './world/kit.js';
 import { buildLitter, buildMoss } from './flora/litter.js';
 import { buildGrass } from './flora/grass.js';
@@ -22,7 +23,7 @@ import { createKeys } from './ui/input.js';
 import { bindToolbar } from './ui/toolbar.js';
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const params = new URLSearchParams(location.search);   // ?lite  ?pix=N  ?zoom=N  ?look=x,z  ?seed=N  ?still
+const params = new URLSearchParams(location.search);   // ?lite  ?pix=N  ?zoom=N  ?look=x,z  ?seed=N  ?still  ?debug=habitats
 const lite = params.has('lite') || matchMedia('(pointer: coarse)').matches;
 
 const container = document.getElementById('app');
@@ -30,7 +31,7 @@ const pipeline = createPipeline(container);
 const { scene } = pipeline;
 const keys = createKeys();
 const rig = createCameraRig(pipeline.renderer.domElement, { half: HALF, keys });
-addLights(scene, { lite });
+addLights(scene, { lite, half: HALF });
 
 // ---------- build the scene ----------
 // Every builder draws from one seeded stream. KEEP THIS ORDER: moving a call (or adding random draws to one)
@@ -40,8 +41,8 @@ const seedParam = Number(params.get('seed'));
 const seed = Number.isInteger(seedParam) && seedParam >= 1 && seedParam < 2147483647 ? seedParam : 9;
 const rng = createRng(seed);
 const tex = createTextures(rng);
-const ctx = { scene, rng, tex, lite, ...createInstancing(scene) };
-const clumps = { leaf: [], needle: [] };
+const ctx = { scene, rng, tex, lite, debug: params.get('debug'), ...createInstancing(scene) };   // ?debug=habitats colours the ground by zone
+const clumps = { leaf: [], needle: [], low: [], lowNeedle: [] };   // tree crowns, and shrub / sapling foliage
 buildGround(ctx);
 buildLitter(ctx);
 buildGrass(ctx);
@@ -49,19 +50,27 @@ buildFlowers(ctx);
 buildTrees(ctx, clumps);
 buildSaplings(ctx, clumps);
 buildShrubs(ctx, clumps);
-buildFoliage(ctx, clumps);
+const crowns = buildFoliage(ctx, clumps);
 buildTallHerbs(ctx);
 buildFerns(ctx);
 buildMoss(ctx);
 buildDeadWood(ctx);
 buildAntMound(ctx);
+buildFeatures(ctx);
 buildFungi(ctx);
 buildResearchKit(ctx);
 const fauna = createFauna(ctx);
 window.__rigs = fauna.rigs;   // debugging handle (tools/scene-fingerprint.js uses it)
 window.__seed = seed;
 
-bindToolbar(rig, fauna.followable);
+bindToolbar(rig, fauna.followable, crowns);
+// debugging/screenshot hook: jump the camera (x, z = null for the overview) and show or hide the crowns
+window.__view = (x, z, zoom, canopy = true) => {
+  if (x == null) rig.lookAt(0, 0.5, 0); else rig.lookAt(x, height(x, z) + 0.4, z);
+  rig.camera.zoom = zoom ?? rig.overviewZoom; rig.camera.updateProjectionMatrix();
+  crowns.forEach((m) => { m.visible = canopy; });
+};
+if (params.get('canopy') === 'off') document.querySelector('[data-canopy]')?.click();   // ?canopy=off hides the tree crowns
 
 // ---------- size and loop ----------
 function resize() {

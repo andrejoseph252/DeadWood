@@ -2,7 +2,8 @@
 // numbered tree tags, and a camera trap.
 import * as THREE from 'three';
 import { C, toon, tm } from '../render/materials.js';
-import { HALF, TREES, height } from './plot.js';
+import { HALF, TREES, SETT, height } from './plot.js';
+import { trunkR } from '../flora/trees.js';
 
 export function buildResearchKit({ scene }) {
   const wood = tm('#b88d58'), flagM = toon({ color: C('#ff6a1a'), side: THREE.DoubleSide }), white = tm('#f1ede2');
@@ -27,8 +28,12 @@ export function buildResearchKit({ scene }) {
 
   // aluminium tags at breast height
   const tagM = tm('#d6d9d4');
-  for (const t of TREES) { if (t.kind === 'snag') continue; const r = t.kind === 'birch' ? 0.19 : 0.4; const tag = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.02), tagM); tag.position.set(t.x, height(t.x, t.z) + 1.3, t.z + r); scene.add(tag); }
+  const tagG = new THREE.BoxGeometry(0.12, 0.12, 0.02);
+  for (const t of TREES) { if (!t.tag || t.h < 3) continue; const tag = new THREE.Mesh(tagG, tagM); tag.position.set(t.x, height(t.x, t.z) + 1.3, t.z + trunkR(t) + 0.02); scene.add(tag); }
 
-  // camera trap strapped to the first beech
-  const beech = TREES[0]; const cam = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.3, 0.16), tm('#3b4a2a')); cam.position.set(beech.x + 0.42, height(beech.x, beech.z) + 1.6, beech.z + 0.2); cam.rotation.y = 0.8; cam.castShadow = true; scene.add(cam);
+  // camera trap on the trunk nearest the sett, aimed at the entrances (world.md section 2)
+  const [sx, sz] = SETT.entrances[2], aimZ = sz + 1.2;
+  const host = TREES.filter((t) => t.r && t.kind !== 'snag').reduce((b, t) => (Math.hypot(t.x - sx, t.z - aimZ) < Math.hypot(b.x - sx, b.z - aimZ) ? t : b));
+  const a = Math.atan2(sz - host.z, sx - host.x), hr = trunkR(host) + 0.06;
+  const cam = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.3, 0.22), tm('#3b4a2a')); cam.position.set(host.x + Math.cos(a) * hr, height(host.x, host.z) + 1.0, host.z + Math.sin(a) * hr); cam.rotation.y = -a; cam.castShadow = true; scene.add(cam);
 }

@@ -2,88 +2,385 @@
   "_about": "Species on Plot 01. 'render' holds art-direction values (colours, crown shape) read by the renderer. 'growth' will hold gap-model parameters (JABOWA/ForClim style) from roadmap step 1; every value added there must cite its source in 'sources'.",
   "trees": {
     "beech": {
-      "scientific": "Fagus sylvatica", "common": "European beech",
+      "scientific": "Fagus sylvatica",
+      "common": "European beech",
       "render": {
         "bark": "#8d917f",
-        "trunk": { "r0": 0.4, "r1": 0.25, "heightFrac": 0.55, "lean": 0 },
-        "crown": { "clumps": 270, "squash": 0.72, "clumpScale": 1 },
-        "leaves": ["#5d8a2c", "#6c9a32", "#4f7a26", "#78a83a"],
-        "sapling": { "conifer": false, "stem": "#5b4935", "leaves": ["#7fae3c", "#8fbd48", "#6f9c34"] }
+        "trunk": {
+          "r0": 0.4,
+          "r1": 0.25,
+          "heightFrac": 0.55,
+          "lean": 0
+        },
+        "crown": {
+          "clumps": 270,
+          "squash": 0.72,
+          "clumpScale": 1
+        },
+        "leaves": [
+          "#5d8a2c",
+          "#6c9a32",
+          "#4f7a26",
+          "#78a83a"
+        ],
+        "sapling": {
+          "conifer": false,
+          "stem": "#5b4935",
+          "leaves": [
+            "#7fae3c",
+            "#8fbd48",
+            "#6f9c34"
+          ]
+        }
       },
-      "growth": null, "sources": []
+      "growth": null,
+      "sources": []
     },
     "oak": {
-      "scientific": "Quercus robur", "common": "Pedunculate oak",
-      "_note": "design.md says only 'Quercus'; Q. robur assumed. Q. petraea (sessile oak) is the other common Central European oak.",
+      "scientific": "Quercus robur",
+      "common": "Pedunculate oak",
+      "_note": "design.md says only 'Quercus'; Q. robur assumed. Q. petraea (sessile oak) is the other common Central European oak. docs/world.md (Nov 2026) names sessile oak, Q. petraea; switch when the species data is transcribed (Setting Build S1).",
       "render": {
         "bark": "#5b4935",
-        "trunk": { "r0": 0.4, "r1": 0.25, "heightFrac": 0.55, "lean": 0 },
-        "crown": { "clumps": 270, "squash": 0.72, "clumpScale": 1 },
-        "leaves": ["#4f7428", "#5c822c", "#456823", "#6a8f33"],
-        "sapling": { "conifer": false, "stem": "#5b4935", "leaves": ["#7fae3c", "#8fbd48", "#6f9c34"] }
+        "trunk": {
+          "r0": 0.4,
+          "r1": 0.25,
+          "heightFrac": 0.55,
+          "lean": 0
+        },
+        "crown": {
+          "clumps": 270,
+          "squash": 0.72,
+          "clumpScale": 1
+        },
+        "leaves": [
+          "#4f7428",
+          "#5c822c",
+          "#456823",
+          "#6a8f33"
+        ],
+        "sapling": {
+          "conifer": false,
+          "stem": "#5b4935",
+          "leaves": [
+            "#7fae3c",
+            "#8fbd48",
+            "#6f9c34"
+          ]
+        }
       },
-      "growth": null, "sources": []
+      "growth": null,
+      "sources": []
     },
     "birch": {
-      "scientific": "Betula pendula", "common": "Silver birch",
+      "scientific": "Betula pendula",
+      "common": "Silver birch",
       "render": {
-        "bark": "#e7e3d6", "lenticels": true,
-        "trunk": { "r0": 0.18, "r1": 0.09, "heightFrac": 0.75, "lean": 0.02 },
-        "crown": { "clumps": 150, "squash": 1.3, "clumpScale": 0.8 },
-        "leaves": ["#86a83c", "#9bbb4a", "#7a9a35", "#b0c95a"],
-        "sapling": { "conifer": false, "stem": "#e7e3d6", "leaves": ["#7fae3c", "#8fbd48", "#6f9c34"] }
+        "bark": "#e7e3d6",
+        "lenticels": true,
+        "trunk": {
+          "r0": 0.18,
+          "r1": 0.09,
+          "heightFrac": 0.75,
+          "lean": 0.02
+        },
+        "crown": {
+          "clumps": 150,
+          "squash": 1.3,
+          "clumpScale": 0.8
+        },
+        "leaves": [
+          "#86a83c",
+          "#9bbb4a",
+          "#7a9a35",
+          "#b0c95a"
+        ],
+        "sapling": {
+          "conifer": false,
+          "stem": "#e7e3d6",
+          "leaves": [
+            "#7fae3c",
+            "#8fbd48",
+            "#6f9c34"
+          ]
+        }
       },
-      "growth": null, "sources": []
+      "growth": null,
+      "sources": []
     },
     "spruce": {
-      "scientific": "Picea abies", "common": "Norway spruce",
+      "scientific": "Picea abies",
+      "common": "Norway spruce",
       "render": {
         "bark": "#6a3f28",
-        "trunk": { "r0": 0.36, "r1": 0.11 },
-        "crown": { "clumps": 260 },
-        "needles": ["#2f5a3c", "#2a5236", "#36664a", "#284a33"],
-        "deadNeedles": ["#a5622f", "#b8763c", "#8a4f27", "#c4884a"],
-        "sapling": { "conifer": true, "stem": "#5b4935", "leaves": ["#3a6a45", "#2f5c3c"] }
+        "trunk": {
+          "r0": 0.36,
+          "r1": 0.11
+        },
+        "crown": {
+          "clumps": 260
+        },
+        "needles": [
+          "#2f5a3c",
+          "#2a5236",
+          "#36664a",
+          "#284a33"
+        ],
+        "deadNeedles": [
+          "#a5622f",
+          "#b8763c",
+          "#8a4f27",
+          "#c4884a"
+        ],
+        "sapling": {
+          "conifer": true,
+          "stem": "#5b4935",
+          "leaves": [
+            "#3a6a45",
+            "#2f5c3c"
+          ]
+        }
       },
-      "growth": null, "sources": []
+      "growth": null,
+      "sources": []
     },
     "fir": {
-      "scientific": "Abies alba", "common": "Silver fir",
+      "scientific": "Abies alba",
+      "common": "Silver fir",
       "render": {
-        "sapling": { "conifer": true, "stem": "#5b4935", "leaves": ["#3a6a45", "#2f5c3c"] }
+        "sapling": {
+          "conifer": true,
+          "stem": "#5b4935",
+          "leaves": [
+            "#3a6a45",
+            "#2f5c3c"
+          ]
+        }
       },
-      "growth": null, "sources": []
+      "growth": null,
+      "sources": []
     },
     "rowan": {
-      "scientific": "Sorbus aucuparia", "common": "Rowan",
+      "scientific": "Sorbus aucuparia",
+      "common": "Rowan",
       "render": {
-        "sapling": { "conifer": false, "stem": "#5b4935", "leaves": ["#5f9a34", "#6faa3c"] }
+        "sapling": {
+          "conifer": false,
+          "stem": "#5b4935",
+          "leaves": [
+            "#5f9a34",
+            "#6faa3c"
+          ]
+        },
+        "bark": "#7a7466",
+        "trunk": {
+          "r0": 0.13,
+          "r1": 0.07,
+          "heightFrac": 0.55,
+          "lean": 0.03
+        },
+        "crown": {
+          "clumps": 110,
+          "squash": 1.1,
+          "clumpScale": 0.65
+        },
+        "leaves": [
+          "#5f9a34",
+          "#6faa3c",
+          "#558c2e",
+          "#7ab446"
+        ]
       },
-      "growth": null, "sources": []
+      "growth": null,
+      "sources": []
+    },
+    "alder": {
+      "scientific": "Alnus glutinosa",
+      "common": "Black alder",
+      "render": {
+        "bark": "#4a4640",
+        "trunk": {
+          "r0": 0.26,
+          "r1": 0.14,
+          "heightFrac": 0.6,
+          "lean": 0.03
+        },
+        "crown": {
+          "clumps": 170,
+          "squash": 1.15,
+          "clumpScale": 0.85
+        },
+        "leaves": [
+          "#355a27",
+          "#3f6a2c",
+          "#2f5022",
+          "#4a7431"
+        ],
+        "sapling": {
+          "conifer": false,
+          "stem": "#4a4640",
+          "leaves": [
+            "#3f6a2c",
+            "#4a7431"
+          ]
+        }
+      },
+      "growth": null,
+      "sources": []
+    },
+    "ash": {
+      "scientific": "Fraxinus excelsior",
+      "common": "Ash",
+      "_note": "ash dieback (Hymenoscyphus fraxineus) shown as crown loss via the tree record's 'thin'",
+      "render": {
+        "bark": "#8e8f86",
+        "trunk": {
+          "r0": 0.3,
+          "r1": 0.16,
+          "heightFrac": 0.62,
+          "lean": 0.02
+        },
+        "crown": {
+          "clumps": 190,
+          "squash": 0.95,
+          "clumpScale": 0.8
+        },
+        "leaves": [
+          "#6b8f35",
+          "#79a03c",
+          "#5d812f",
+          "#86ab45"
+        ],
+        "sapling": {
+          "conifer": false,
+          "stem": "#8e8f86",
+          "leaves": [
+            "#79a03c",
+            "#86ab45"
+          ]
+        }
+      },
+      "growth": null,
+      "sources": []
+    },
+    "holly": {
+      "scientific": "Ilex aquifolium",
+      "common": "Holly",
+      "render": {
+        "bark": "#7d7f72",
+        "trunk": {
+          "r0": 0.12,
+          "r1": 0.07,
+          "heightFrac": 0.3,
+          "lean": 0
+        },
+        "crown": {
+          "clumps": 110,
+          "squash": 1.35,
+          "clumpScale": 0.6
+        },
+        "leaves": [
+          "#1f3d22",
+          "#264a28",
+          "#2c5530",
+          "#1a3520"
+        ],
+        "sapling": {
+          "conifer": false,
+          "stem": "#7d7f72",
+          "leaves": [
+            "#264a28",
+            "#2c5530"
+          ]
+        }
+      },
+      "growth": null,
+      "sources": []
     }
   },
   "groundLayer": {
-    "bramble": { "scientific": "Rubus fruticosus agg.", "common": "Bramble" },
-    "bilberry": { "scientific": "Vaccinium myrtillus", "common": "Bilberry" },
-    "elder": { "scientific": "Sambucus nigra", "common": "Elder" },
-    "foxglove": { "scientific": "Digitalis purpurea", "common": "Foxglove" },
-    "willowherb": { "scientific": "Chamaenerion angustifolium", "common": "Rosebay willowherb" },
-    "nettle": { "scientific": "Urtica dioica", "common": "Stinging nettle" },
-    "woodSorrel": { "scientific": "Oxalis acetosella", "common": "Wood sorrel" },
-    "ivy": { "scientific": "Hedera helix", "common": "Ivy" },
-    "sedge": { "scientific": "Carex spp.", "common": "Sedges" },
-    "fern": { "scientific": null, "common": "Ferns", "_note": "species not chosen yet" },
-    "flyAgaric": { "scientific": "Amanita muscaria", "common": "Fly agaric" },
-    "honeyFungus": { "scientific": "Armillaria spp.", "common": "Honey fungus" }
+    "bramble": {
+      "scientific": "Rubus fruticosus agg.",
+      "common": "Bramble"
+    },
+    "bilberry": {
+      "scientific": "Vaccinium myrtillus",
+      "common": "Bilberry"
+    },
+    "elder": {
+      "scientific": "Sambucus nigra",
+      "common": "Elder"
+    },
+    "foxglove": {
+      "scientific": "Digitalis purpurea",
+      "common": "Foxglove"
+    },
+    "willowherb": {
+      "scientific": "Chamaenerion angustifolium",
+      "common": "Rosebay willowherb"
+    },
+    "nettle": {
+      "scientific": "Urtica dioica",
+      "common": "Stinging nettle"
+    },
+    "woodSorrel": {
+      "scientific": "Oxalis acetosella",
+      "common": "Wood sorrel"
+    },
+    "ivy": {
+      "scientific": "Hedera helix",
+      "common": "Ivy"
+    },
+    "sedge": {
+      "scientific": "Carex spp.",
+      "common": "Sedges"
+    },
+    "fern": {
+      "scientific": null,
+      "common": "Ferns",
+      "_note": "species not chosen yet"
+    },
+    "flyAgaric": {
+      "scientific": "Amanita muscaria",
+      "common": "Fly agaric"
+    },
+    "honeyFungus": {
+      "scientific": "Armillaria spp.",
+      "common": "Honey fungus"
+    }
   },
   "animals": {
-    "deer": { "scientific": "Capreolus capreolus", "common": "Roe deer" },
-    "fox": { "scientific": "Vulpes vulpes", "common": "Red fox" },
-    "boar": { "scientific": "Sus scrofa", "common": "Wild boar" },
-    "hare": { "scientific": "Lepus europaeus", "common": "Brown hare" },
-    "squirrel": { "scientific": "Sciurus vulgaris", "common": "Red squirrel" },
-    "jay": { "scientific": "Garrulus glandarius", "common": "Eurasian jay" },
-    "woodpecker": { "scientific": "Dendrocopos major", "common": "Great spotted woodpecker" },
-    "woodAnt": { "scientific": "Formica rufa group", "common": "Red wood ant" }
+    "deer": {
+      "scientific": "Capreolus capreolus",
+      "common": "Roe deer"
+    },
+    "fox": {
+      "scientific": "Vulpes vulpes",
+      "common": "Red fox"
+    },
+    "boar": {
+      "scientific": "Sus scrofa",
+      "common": "Wild boar"
+    },
+    "hare": {
+      "scientific": "Lepus europaeus",
+      "common": "Brown hare"
+    },
+    "squirrel": {
+      "scientific": "Sciurus vulgaris",
+      "common": "Red squirrel"
+    },
+    "jay": {
+      "scientific": "Garrulus glandarius",
+      "common": "Eurasian jay"
+    },
+    "woodpecker": {
+      "scientific": "Dendrocopos major",
+      "common": "Great spotted woodpecker"
+    },
+    "woodAnt": {
+      "scientific": "Formica rufa group",
+      "common": "Red wood ant"
+    }
   }
 }
