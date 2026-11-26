@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Forest Plot 01</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* VOICE: still, cinematic, a game's opening shot
+   IDEA: looking down on one clearing in a late-summer pine forest
+   PICTURE: the live 3D scene fills the whole screen
+   COLOUR and TYPE: warm haze and sun, dark glass labels; Cormorant Garamond + Inter
+   LAYOUT: scene edge to edge, small glass label top-left, credit bottom-right */
+:root{color-scheme:dark;--ink:#f3eee2;--soft:#cfc8b6;--glass:rgba(20,22,16,.55)}
+*{box-sizing:border-box;min-width:0}
+html,body{height:100%}
+body{margin:0;background:#a9a68e;color:var(--ink);font:15px/1.5 Inter,system-ui,sans-serif;overflow:hidden}
+#app{position:fixed;inset:0}
+#app canvas{display:block;width:100%;height:100%;touch-action:none;outline:none}
+.vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(120% 95% at 50% 45%,transparent 55%,rgba(10,12,6,.42))}
+.label{position:fixed;top:clamp(12px,2.5vw,24px);left:clamp(12px,2.5vw,24px);padding:12px 16px 13px;border-radius:12px;background:var(--glass);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);max-width:min(340px,calc(100vw - 24px));pointer-events:none}
+h1{margin:0;font:600 30px/1.05 "Cormorant Garamond",Georgia,serif;letter-spacing:.01em}
+.label p{margin:4px 0 0;color:var(--soft);font-size:13px}
+#status{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);padding:12px 18px;border-radius:999px;background:var(--glass);backdrop-filter:blur(8px);font-size:14px;white-space:nowrap}
+.hint,.credit{position:fixed;bottom:clamp(10px,2vw,18px);font-size:12px;color:var(--soft);text-shadow:0 1px 3px rgba(0,0,0,.6);pointer-events:none;opacity:0;transition:opacity .8s}
+.hint{left:clamp(12px,2.5vw,24px)}
+.credit{right:clamp(12px,2.5vw,24px);text-align:right;pointer-events:auto}
+.credit a{color:var(--soft)}
+.ready .hint,.ready .credit{opacity:1}
+@media (max-width:600px){.hint{display:none}h1{font-size:26px}}
+@media (prefers-reduced-motion:reduce){.hint,.credit{transition:none}}
+</style>
+</head>
+<body>
+<div id="app" aria-label="3D view of a forest clearing"></div>
+<div class="vignette"></div>
+<div class="label">
+  <h1>Plot 01</h1>
+  <p>A clearing in a late-summer pine forest. Nothing grows yet.</p>
+</div>
+<div id="status">Loading…</div>
+<div class="hint">Drag to look around · scroll or pinch to zoom</div>
+<div class="credit">Trees: <a href="https://github.com/dgreenheck/ez-tree">EZ-Tree</a> (MIT) · Ground and scanned models: <a href="https://polyhaven.com">Poly Haven</a> (CC0)</div>
+<script src="main.js"></script>
+</body>
+</html>

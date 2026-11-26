@@ -1,0 +1,12 @@
+{
+  "name": "plot01",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Forest ecology field-station game: a 28 m plot rendered as 3D pixel art",
+  "scripts": {
+    "dev": "esbuild src/main.js --bundle --outfile=public/main.js --servedir=public --watch",
+    "build": "esbuild src/main.js --bundle --minify --outfile=public/main.js"
+  },
+  "dependencies": { "three": "0.169.0" },
+  "devDependencies": { "esbuild": "^0.24.0" }
+}
