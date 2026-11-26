@@ -9,7 +9,8 @@ import { generateEstate, coverAt, height, slope, HALF, COVERS } from './index.js
 import { pondW } from './terrain.js';
 
 // Places that get a hand-authored template later; until then they are built from the generic rules and flagged.
-export const BESPOKE = { plot01: 'Plot 01, the research plot (open it in the plot view)', farmstead: 'the field station', quarry: 'the old quarry', pond: 'the beaver pond and dam' };
+// (Plot 01 has its template: the plot scene itself, built into tile (8, 8) by the estate page.)
+export const BESPOKE = { farmstead: 'the field station', quarry: 'the old quarry', pond: 'the beaver pond and dam' };
 
 // Ground cover per cover type: items per 100 m² (only built for near tiles)
 const SCATTER = {

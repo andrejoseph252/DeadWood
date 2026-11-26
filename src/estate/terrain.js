@@ -3,6 +3,7 @@
 // uphill. Pure: no three.js, no DOM. Heights are metres above sea level.
 import { fbm, vnoise, sstep } from '../core/noise.js';
 import E from '../data/estate.json' with { type: 'json' };
+import { height as plotHeight } from '../world/fields.js';
 
 export const HALF = E.size / 2;
 
@@ -33,7 +34,7 @@ const ridgeLine = polyline([RG.from, RG.to]);
 // signed side of the ridge line: > 0 on the south-east (valley) side
 const ridgeSide = (() => { const [x0, z0] = RG.from, [x1, z1] = RG.to, dx = x1 - x0, dz = z1 - z0, l = Math.hypot(dx, dz); return (x, z) => ((x - x0) * -dz + (z - z0) * dx) / l * -1; })();
 
-function landHeight(x, z) {
+function landRaw(x, z) {
   let h = R.base + R.tilt * (-x - z);
   // the ridge: a broad rise, steepened into a cliff band on its south-east face
   const { d } = ridgeLine.near(x, z), side = ridgeSide(x, z);
@@ -46,6 +47,19 @@ function landHeight(x, z) {
     const { d: bd } = b.line.near(x, z); h -= v.depth * Math.exp(-((bd / v.width) ** 2));
   }
   return h;
+}
+
+// ---------- Plot 01 (E4): inside its 60 m square the ground is the plot's own terrain, raised by PLOT.C to the
+// estate's elevation; over a 16 m band around it the estate's ground eases into it, so there is no step ----------
+const [PX, PZ] = E.plot.origin, PH = 30, BLEND = 16;
+const PLOT_C = (() => { let s = 0, n = 0; for (let k = 0; k < 240; k++) { const t = (k / 240) * 4, side = Math.floor(t), f = t - side, u = -PH + 2 * PH * f;
+  const [lx, lz] = [[u, -PH], [PH, u], [-u, PH], [-PH, -u]][side]; s += landRaw(PX + lx, PZ + lz) - plotHeight(lx, lz); n++; } return s / n; })();
+export const PLOT = { x: PX, z: PZ, half: PH, C: PLOT_C };
+export const inPlot = (x, z, m = 0) => Math.abs(x - PX) < PH - m && Math.abs(z - PZ) < PH - m;
+function landHeight(x, z) {
+  const h = landRaw(x, z), lx = x - PX, lz = z - PZ, m = Math.max(Math.abs(lx), Math.abs(lz));
+  if (m > PH + BLEND) return h;
+  return h + (plotHeight(lx, lz) + PLOT_C - h) * sstep(PH + BLEND, PH, m);
 }
 
 // ---------- brook beds: the land along each centre line, lowered by the channel depth, never rising downstream ----------
@@ -72,13 +86,14 @@ function channel(x, z) {
   let best = 0, bedH = 0;
   for (const b of Object.values(BROOKS)) {
     if (b.line.farFrom(x, z, b.halfWidth * 2)) continue;
-    const { d, s } = b.line.near(x, z), w = sstep(b.halfWidth, b.halfWidth * 0.25, d);
+    const { d, s } = b.line.near(x, z), pm = Math.max(Math.abs(x - PX), Math.abs(z - PZ)), w = sstep(b.halfWidth, b.halfWidth * 0.25, d) * sstep(PH, PH + 5, pm);   // eases in past Plot 01's edge, where its own channel ends
     if (w > best) { best = w; bedH = b.bedAt(s); }
   }
   return { w: best, bed: bedH };
 }
 
 export function height(x, z) {
+  if (inPlot(x, z)) return landHeight(x, z);   // the plot's own terrain (its stream is cut in it already)
   let h = landHeight(x, z);
   const c = channel(x, z); if (c.w > 0) h += (Math.min(h, c.bed) - h) * c.w;
   const p = pondW(x, z); if (p > 0) h += (Math.min(h, POND.level - 0.8) - h) * p;   // the flooded valley floor, under 0.8 m of water

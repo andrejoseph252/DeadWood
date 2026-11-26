@@ -9,7 +9,8 @@ import { createRng } from '../core/random.js';
 import { C, toon, tm } from '../render/materials.js';
 import { createInstancing } from '../render/instancing.js';
 import { planTile, CONIFER, BESPOKE, coverAt, height } from '../estate/tile-plan.js';
-import { BROOKS, POND, pondW, HALF } from '../estate/terrain.js';
+import { BROOKS, POND, pondW, HALF, PLOT, inPlot } from '../estate/terrain.js';
+import { groundColor as plotGroundColor } from '../world/ground.js';
 import { roadD } from '../estate/cover.js';
 
 export const Y0 = 390;
@@ -21,7 +22,7 @@ const GROUND = {
   orchard: ['#6a8432', '#768f36', '#5f7a30'], farmstead: ['#8a7a5a', '#7a8a40', '#6a7a36'], quarry: ['#a89c80', '#8f846c', '#6e7a46'], plot01: ['#5f7d2c', '#6e4f30', '#7f9636'],
 };
 const pal = Object.fromEntries(Object.entries(GROUND).map(([k, v]) => [k, v.map((h) => C(h))]));
-const ROAD = C('#a2906c'), BED = C('#5a5040'), CHAR = C('#262019');
+const ROAD = C('#a2906c'), BED = C('#5a5040'), CHAR = C('#262019'), tmpC = new THREE.Color();
 const tileSeed = (i, j, k) => ((i + 7) * 92837111 ^ (j + 3) * 689287499 ^ k * 283923481) >>> 0 || 1;
 
 // shared: { tex, canopy: boolean }; returns { group, crowns, dispose }
@@ -35,11 +36,12 @@ export function buildTile(i, j, lod, shared) {
   const pos = g.attributes.position, col = new Float32Array(pos.count * 3), c = new THREE.Color();
   for (let k = 0; k < pos.count; k++) {
     const x = pos.getX(k), z = pos.getZ(k), P = pal[coverAt(x, z)] || pal.ancient, n = fbm(x * 0.5, z * 0.5), n2 = vnoise(x * 2.1, z * 2.1);
-    pos.setY(k, yAt(x, z));
+    pos.setY(k, yAt(x, z) - (inPlot(x, z, 0.4) ? 0.08 : 0));   // under Plot 01's own ground
     c.copy(P[0]).lerp(P[1], n).lerp(P[2], sstep(0.55, 0.85, fbm(x * 0.2 + 7, z * 0.2)) * 0.7);
     for (const b of Object.values(BROOKS)) { if (b.line.farFrom(x, z, 4)) continue; c.lerp(BED, sstep(b.halfWidth * 1.3, b.halfWidth * 0.5, b.line.near(x, z).d)); }
     c.lerp(ROAD, sstep(2.6, 1.6, roadD(x, z) + (n2 - 0.5) * 0.6));
     for (const [px, pz] of plan.charcoal) c.lerp(CHAR, sstep(5.2, 3.8, Math.hypot(x - px, z - pz) + (n2 - 0.5)) * 0.85);
+    const pm = Math.max(Math.abs(x - PLOT.x), Math.abs(z - PLOT.z)); if (pm < 38) c.lerp(plotGroundColor(x - PLOT.x, z - PLOT.z, tmpC), sstep(38, 30, pm));   // blend into the plot's ground colours
     col.set([c.r, c.g, c.b], k * 3);
   }
   g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.computeVertexNormals();
@@ -54,7 +56,7 @@ export function buildTile(i, j, lod, shared) {
     const flush = () => { if (run.length > 1) group.add(ribbon(run, b.halfWidth * 0.8, waterM)); run = []; };
     for (let s = 0; s <= b.line.length; s += 0.5) {
       const [x, z] = b.line.at(s);
-      if (x < x0 - 0.5 || x > x0 + size + 0.5 || z < z0 - 0.5 || z > z0 + size + 0.5 || pondW(x, z) > 0.6) { flush(); continue; }
+      if (x < x0 - 0.5 || x > x0 + size + 0.5 || z < z0 - 0.5 || z > z0 + size + 0.5 || pondW(x, z) > 0.6 || inPlot(x, z, -0.3)) { flush(); continue; }
       const [x2, z2] = b.line.at(s + 0.5), l = Math.hypot(x2 - x, z2 - z) || 1;
       run.push({ x, z, y: b.bedAt(s) + b.depth * 0.55 - Y0, nx: -(z2 - z) / l, nz: (x2 - x) / l });
     }

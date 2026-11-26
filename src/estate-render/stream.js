@@ -6,7 +6,8 @@ import { HALF } from '../estate/terrain.js';
 import E from '../data/estate.json' with { type: 'json' };
 
 const N = E.size / E.tile;
-export function createStreamer(scene, shared, { nearRing = 1, farRing = 2 } = {}) {
+// hooks: onBuild(i, j, lod) after a tile is built, onDrop(i, j) after one is removed (for templates like Plot 01)
+export function createStreamer(scene, shared, { nearRing = 1, farRing = 2, onBuild = () => {}, onDrop = () => {} } = {}) {
   const tiles = new Map();   // "i,j" -> { i, j, lod, built }
   const crowns = new Set();
   function update(x, z, budget = 1) {
@@ -21,12 +22,12 @@ export function createStreamer(scene, shared, { nearRing = 1, farRing = 2 } = {}
       const key = `${w.i},${w.j}`, old = tiles.get(key), built = buildTile(w.i, w.j, w.lod, shared);
       scene.add(built.group); built.crowns.forEach((m) => crowns.add(m));
       if (old) drop(old);
-      tiles.set(key, { i: w.i, j: w.j, lod: w.lod, built });
+      tiles.set(key, { i: w.i, j: w.j, lod: w.lod, built }); onBuild(w.i, w.j, w.lod);
     }
-    for (const [key, t] of tiles) if (Math.max(Math.abs(t.i - ci), Math.abs(t.j - cj)) > farRing + 1) { drop(t); tiles.delete(key); }
+    for (const [key, t] of tiles) if (Math.max(Math.abs(t.i - ci), Math.abs(t.j - cj)) > farRing + 1) { drop(t); tiles.delete(key); onDrop(t.i, t.j); }
     return want.length - Math.min(want.length, budget);   // tiles still to build
   }
   function drop(t) { scene.remove(t.built.group); t.built.crowns.forEach((m) => crowns.delete(m)); t.built.dispose(); }
   function setCanopy(on) { shared.canopy = on; crowns.forEach((m) => { m.visible = on; }); }
-  return { update, setCanopy, tiles };
+  return { update, setCanopy, tiles, crowns };
 }

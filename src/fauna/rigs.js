@@ -170,3 +170,19 @@ export function makeBadger() {
   for (const s of [-1, 1]) for (const lx of [-0.2, 0.22]) { const L = pivot(body, [lx, 0.17, 0.1 * s]); seg(L, M.black, [0, 0, 0], [-0.02, -0.16, 0], 0.045, 0.035); ell(L, M.black, [-0.04, -0.165, 0], [0.045, 0.018, 0.03]); legs.push(L); }
   return { kind: 'badger', root, body, head, ears, tail, legs };
 }
+
+// Eurasian beaver (Castor fiber): heavy, rounded, dark brown, with a flat scaly paddle of a tail; swims low
+export function makeBeaver() {
+  const M = { fur: tm('#5a3a24'), dark: tm('#3a2618'), tail: tm('#2a2420'), nose: tm('#141010'), teeth: tm('#d87a2a') };
+  const root = new THREE.Group(), body = pivot(root, [0, 0, 0]);
+  ell(body, M.fur, [0.02, 0.17, 0], [0.3, 0.16, 0.17]); ell(body, M.dark, [0.02, 0.1, 0], [0.26, 0.08, 0.15]);
+  const head = pivot(body, [-0.27, 0.2, 0]);
+  ell(head, M.fur, [-0.04, 0, 0], [0.1, 0.08, 0.085]); ell(head, M.nose, [-0.14, -0.01, 0], [0.022, 0.018, 0.026]);
+  ell(head, M.teeth, [-0.13, -0.05, 0], [0.01, 0.014, 0.012]);
+  const ears = [-1, 1].map((s) => { const e = pivot(head, [0.0, 0.06, 0.05 * s]); ell(e, M.dark, [0, 0.01, 0], [0.015, 0.015, 0.012]); return e; });
+  for (const s of [-1, 1]) ell(head, M.nose, [-0.07, 0.03, 0.055 * s], [0.012, 0.012, 0.01]);
+  const tail = pivot(body, [0.3, 0.12, 0]); const paddle = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.03, 12), M.tail); paddle.scale.set(1.6, 1, 0.9); paddle.position.set(0.16, 0, 0); paddle.castShadow = true; tail.add(paddle);
+  const legs = [];
+  for (const s of [-1, 1]) for (const lx of [-0.15, 0.17]) { const L = pivot(body, [lx, 0.08, 0.12 * s]); seg(L, M.dark, [0, 0, 0], [0, -0.08, 0], 0.04, 0.035); legs.push(L); }
+  return { kind: 'beaver', root, body, head, ears, tail, legs };
+}

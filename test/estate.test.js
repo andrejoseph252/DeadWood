@@ -55,6 +55,23 @@ test('tile plans are deterministic, independent of build order, and flag the bes
   const { planTile } = await import('../src/estate/tile-plan.js');
   const a = JSON.stringify(planTile(5, 5)); planTile(12, 3); planTile(0, 0);
   assert.equal(JSON.stringify(planTile(5, 5)), a);
-  assert.deepEqual(planTile(8, 8).bespoke, ['plot01']);
+  assert.deepEqual(planTile(8, 8).bespoke, []);   // Plot 01 has its template: the plot scene itself
+  const [bi, bj] = [Math.floor((E.units.farmstead.buildings[0] + 500) / E.tile), Math.floor((E.units.farmstead.buildings[1] + 500) / E.tile)];
+  assert.ok(planTile(bi, bj).bespoke.includes('farmstead'));
   const far = planTile(5, 5, { near: false }); assert.equal(far.scatter.length, 0); assert.ok(far.trees.length > 0);
+});
+
+test('the estate ground meets Plot 01 without a step', async () => {
+  const { PLOT } = await import('../src/estate/terrain.js'), { height: plotHeight } = await import('../src/world/fields.js');
+  let worst = 0;
+  for (let k = 0; k <= 200; k++) { const u = -30 + (60 * k) / 200; for (const [lx, lz] of [[u, -30.01], [30.01, u], [u, 30.01], [-30.01, u]]) worst = Math.max(worst, Math.abs(height(PLOT.x + lx, PLOT.z + lz) - (plotHeight(lx, lz) + PLOT.C))); }
+  assert.ok(worst < 0.08, `step of ${worst.toFixed(2)} m at the plot edge`);
+});
+
+test('estate animals: every home and starting spot is walkable, none inside Plot 01, beavers in the pond', async () => {
+  const { generateFauna, walkable } = await import('../src/estate/fauna.js'), { inPlot } = await import('../src/estate/terrain.js');
+  const fauna = generateFauna();
+  assert.ok(fauna.length >= 30);
+  for (const a of fauna) { assert.ok(walkable(a.x, a.z, { swim: a.swim }), `${a.id} ${a.species}`); assert.ok(!inPlot(a.x, a.z), a.id); }
+  assert.ok(fauna.filter((a) => a.species === 'beaver').every((a) => a.swim));
 });

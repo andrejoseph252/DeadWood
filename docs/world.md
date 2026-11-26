@@ -740,7 +740,7 @@ The ground rises to a sandstone ridge in the north-west and falls to a brook val
 These are in the roster for the estate only. Build them when their unit is built in 3D:
 - **Trees:** hornbeam (*Carpinus betulus*), small-leaved lime (*Tilia cordata*), Scots pine (*Pinus sylvestris*), goat willow (*Salix caprea*), and orchard apple and pear (*Malus domestica*, *Pyrus communis*).
 - **Other plants:** hart's-tongue fern (*Asplenium scolopendrium*).
-- **Animals:** Eurasian beaver (*Castor fiber*).
+- **Animals:** Eurasian beaver (*Castor fiber*), now on the pond (rig in `src/fauna/rigs.js`).
 
 Sycamore (6.1) is common here.
 
@@ -751,6 +751,7 @@ Sycamore (6.1) is common here.
 2. **E2 — The estate map view.** Compartments, stand types and history, with a click to jump into 3D.
    *Built: `src/estate-render/map.js`. A minimap in the corner (click to jump) and a full field-notebook map (M or the Map button): cover, contours every 5 m, brooks, pond, roads, charcoal platforms, compartment grid and labels, place names, flags on the bespoke places, the camera's footprint and facing; hovering shows a compartment's area, stems, cover shares and history; a click flies the camera there.*
 3. **E3 — Streaming 3D.** Tiles built around the camera from the estate data; full detail near, impostor trees further out; animals as populations, spawned as rigs near the camera.
-   *First pass built: `estate.html`. `src/estate/tile-plan.js` turns the 2D design into a per-tile plan (seeded from the tile's coordinates); `src/estate-render/tile.js` builds it (near: leaf-clump crowns and ground cover; far: crown blobs and cones); `src/estate-render/stream.js` keeps a 5 × 5 block of tiles around the camera. The bespoke places (Plot 01, the station, the quarry, the pond and dam) are built from the generic rules and flagged with survey stakes until their templates exist. Animals at estate scale are still to do.*
+   *First pass built: `estate.html`. `src/estate/tile-plan.js` turns the 2D design into a per-tile plan (seeded from the tile's coordinates); `src/estate-render/tile.js` builds it (near: leaf-clump crowns and ground cover; far: crown blobs and cones); `src/estate-render/stream.js` keeps a 5 × 5 block of tiles around the camera. The bespoke places (Plot 01, the station, the quarry, the pond and dam) are built from the generic rules and flagged with survey stakes until their templates exist. Animals: `src/estate/fauna.js` holds 42 animals as data (13 roe deer in groups, a boar sounder, 3 badgers at a second sett, a fox pair, 4 hares, 6 squirrels, a beaver family on the pond, 2 buzzards), each with a home range on walkable ground; `src/estate-render/fauna.js` gives them rigs near the camera. Follow picks the nearest of a kind.*
 4. **E4 — Plot 01 as the anchor tile.** The hand-authored plot drops into tile (8, 8) and blends with its neighbours.
+   *Built: the plot scene (`src/world/build-plot.js`) is built into tile (8, 8) when it comes into range, raised by `PLOT.C`; the estate ground eases into the plot's terrain over 16 m (a test keeps the edge step under 8 cm) and into its ground colours over 8 m; the plot's stream continues into the estate brook. Known seam: the plot's rock shelf along its west edge ends at the plot boundary.*
 5. **E5 — Visibility.** Zoom-based dithered canopy fade, a cursor cutaway, and crown outlines on the ground.
