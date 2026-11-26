@@ -18,31 +18,57 @@ import { buildFungi } from '../flora/fungi.js';
 import { buildDetails } from '../flora/details.js';
 import { createFauna } from '../fauna/index.js';
 
-// returns { crowns, fauna, tex }; opts: { seed, lite, debug }
-export function buildPlot(scene, { seed = 9, lite = false, debug = null } = {}) {
+// The same build as a sequence of steps, so the estate can spread it over frames (one builder per frame) instead of
+// freezing while the plot builds. The result is identical to buildPlot.
+export function* buildPlotSteps(scene, { seed = 9, lite = false, debug = null } = {}) {
   const rng = createRng(seed);
   const tex = createTextures(rng);
   const ctx = { scene, rng, tex, lite, debug, ...createInstancing(scene) };   // ?debug=habitats colours the ground by zone
   const clumps = { leaf: [], needle: [], low: [], lowNeedle: [] };   // tree crowns, and shrub / sapling foliage
   buildGround(ctx);
+  yield;
   buildLitter(ctx);
+  yield;
   buildGrass(ctx);
+  yield;
   buildFlowers(ctx);
+  yield;
   buildTrees(ctx, clumps);
+  yield;
   buildSaplings(ctx, clumps);
+  yield;
   buildShrubs(ctx, clumps);
+  yield;
   const hedgeNettles = buildHedge(ctx, clumps);
+  yield;
   const crowns = buildFoliage(ctx, clumps);
+  yield;
   const herbs = buildTallHerbs(ctx, hedgeNettles);
+  yield;
   buildFerns(ctx);
+  yield;
   buildMoss(ctx);
+  yield;
   buildDeadWood(ctx);
+  yield;
   buildAntMound(ctx);
+  yield;
   buildFeatures(ctx);
+  yield;
   buildDetails(ctx);
+  yield;
   ctx.sprites(ctx.tex.dot, [...herbs.webs, ...herbs.larvae]);   // peacock caterpillar tents on the nettles
   buildFungi(ctx);
+  yield;
   buildResearchKit(ctx);
+  yield;
   const fauna = createFauna(ctx, { foxgloves: herbs.foxgloves });
+  yield;
   return { crowns, fauna, tex };
+}
+
+// returns { crowns, fauna, tex }; opts: { seed, lite, debug }
+export function buildPlot(scene, opts) {
+  const steps = buildPlotSteps(scene, opts);
+  for (;;) { const r = steps.next(); if (r.done) return r.value; }
 }

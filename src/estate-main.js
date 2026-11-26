@@ -10,11 +10,11 @@ import { uTime } from './render/wind.js';
 import { createRng } from './core/random.js';
 import { createKeys } from './ui/input.js';
 import { createStreamer } from './estate-render/stream.js';
-import { Y0 } from './estate-render/tile.js';
+import { Y0 } from './estate-render/tile-build.js';
 import { BESPOKE } from './estate/tile-plan.js';
 import { generateEstate, coverAt, height, COVERS, compOf, compName } from './estate/index.js';
 import { createEstateMap } from './estate-render/map.js';
-import { buildPlot } from './world/build-plot.js';
+import { buildPlotSteps } from './world/build-plot.js';
 import { createEstateFauna, LABEL } from './estate-render/fauna.js';
 import { PLOT } from './estate/terrain.js';
 import E from './data/estate.json' with { type: 'json' };
@@ -37,7 +37,8 @@ const [PI, PJ] = E.plot.tile;
 const streamer = createStreamer(scene, shared, {
   onBuild(i, j) {
     if (i !== PI || j !== PJ) return;
-    if (!plot) { const group = new THREE.Group(); group.position.set(PLOT.x, PLOT.C - Y0, PLOT.z); plot = { group, ...buildPlot(group) }; plot.crowns.forEach((m) => { m.visible = shared.canopy; streamer.crowns.add(m); }); }
+    // built one builder per frame (buildPlotSteps) so the page never freezes while it fills in
+    if (!plot) { const group = new THREE.Group(); group.position.set(PLOT.x, PLOT.C - Y0, PLOT.z); plot = { group, steps: buildPlotSteps(group), done: false }; }
     if (!plot.group.parent) scene.add(plot.group);
   },
   onDrop(i, j) { if (plot && i === PI && j === PJ) scene.remove(plot.group); },
@@ -46,8 +47,7 @@ const yAt = (x, z) => height(x, z) - Y0;
 const goto = (x, z, zoom = HOME) => { rig.lookAt(x, yAt(x, z) + 0.4, z); rig.camera.zoom = zoom; rig.camera.updateProjectionMatrix(); };
 const [sx, sz] = (params.get('at') || '-40,20').split(',').map(Number);
 goto(sx, sz);
-// build the tiles around the start before the first frame
-while (streamer.update(sx, sz, 99) > 0);
+// no waiting: the page shows at once and tiles stream in, nearest first, from the worker pool
 
 // ---------- toolbar and the label ----------
 const tag = document.querySelector('.tag'), label = { b: tag.querySelector('b'), span: tag.querySelector('span') };
@@ -82,8 +82,13 @@ const map = createEstateMap({
   onJump: (x, z) => goto(Math.max(-470, Math.min(470, x)), Math.max(-470, Math.min(470, z)), rig.camera.zoom),
 });
 document.querySelector('[data-map]')?.addEventListener('click', () => map.toggle());
-window.__view = (x, z, zoom, canopy = true) => { goto(x, z, zoom ?? HOME); streamer.setCanopy(canopy); while (streamer.update(x, z, 99) > 0); };   // screenshot hook
+window.__view = async (x, z, zoom, canopy = true) => { goto(x, z, zoom ?? HOME); streamer.setCanopy(canopy); for (let k = 0; k < 1200 && streamer.update(x, z, 50) > 0; k++) await new Promise((r) => setTimeout(r, 25)); streamer.update(x, z, 50); while (plot && !plot.done && plot.group.parent) stepPlot(); };   // screenshot hook: waits for the tiles
 window.__estate = { streamer, rig, fauna };
+
+function stepPlot() {
+  const r = plot.steps.next(); if (!r.done) return;
+  Object.assign(plot, r.value, { done: true }); plot.crowns.forEach((m) => { m.visible = shared.canopy; streamer.crowns.add(m); });
+}
 
 // ---------- size and loop ----------
 function resize() {
@@ -100,7 +105,7 @@ pipeline.renderer.setAnimationLoop((now) => {
   const t = rig.controls.target, sx2 = Math.round(t.x), sz2 = Math.round(t.z);   // the shadow box follows, snapped to whole metres
   sun.target.position.set(sx2, t.y, sz2); sun.position.set(sx2, t.y, sz2).addScaledVector(sunDir, 80); sun.target.updateMatrixWorld();
   streamer.update(t.x, t.z, 1);
-  if (plot?.group.parent) plot.fauna.update(dt, elapsed);
+  if (plot && !plot.done) stepPlot(); else if (plot?.group.parent) plot.fauna.update(dt, elapsed);
   fauna.update(dt, elapsed, t.x, t.z);
   updateLabel(); map.update();
   pipeline.render(rig.camera);
