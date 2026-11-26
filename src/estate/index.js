@@ -18,8 +18,8 @@ export const TILES = E.size / E.tile, COMPS = E.size / E.compartment, PATCHES = 
 const STANDS = {
   ancient: { perHa: 230, mix: { beech: 0.74, oak: 0.2, holly: 0.06 }, dbh: [7, 110], age: [20, 260], shape: 'reverseJ' },
   mixedSouth: { perHa: 380, mix: { beech: 0.45, spruce: 0.3, oak: 0.15, sycamore: 0.1 }, dbh: [10, 55], age: [60, 75], shape: 'even' },
-  spruce1962: { perHa: 520, mix: { spruce: 0.97, beech: 0.03 }, dbh: [24, 46], age: [64, 64], shape: 'even' },
-  spruce1985: { perHa: 900, mix: { spruce: 1 }, dbh: [14, 28], age: [41, 41], shape: 'even' },
+  spruce1962: { perHa: 560, mix: { spruce: 0.95, beech: 0.03, birch: 0.02 }, dbh: [16, 52], age: [64, 64], shape: 'even' },
+  spruce1985: { perHa: 950, mix: { spruce: 0.97, birch: 0.02, rowan: 0.01 }, dbh: [8, 32], age: [41, 41], shape: 'even' },
   calamity: { perHa: 260, mix: { birch: 0.6, rowan: 0.25, goatWillow: 0.1, spruce: 0.05 }, dbh: [7, 12], age: [5, 8], shape: 'even', snagsPerHa: 6 },
   snags: { perHa: 40, mix: { birch: 0.7, rowan: 0.3 }, dbh: [7, 10], age: [5, 7], shape: 'even', snagsPerHa: 420 },
   ravine: { perHa: 300, mix: { sycamore: 0.35, ash: 0.25, lime: 0.2, beech: 0.2 }, dbh: [7, 80], age: [20, 180], shape: 'reverseJ' },
@@ -58,12 +58,17 @@ export function generateEstate() {
   for (const p of patches) {
     const S = STANDS[p.cover]; if (!S) continue;
     const area = (E.patch * E.patch) / 1e4, n = Math.round(S.perHa * area * (0.8 + 0.4 * fbm(p.x * 0.01, p.z * 0.01)));
-    for (let k = 0, tries = 0; k < n && tries < n * 6; tries++) {
-      const x = p.x + rr(-0.5, 0.5) * E.patch, z = p.z + rr(-0.5, 0.5) * E.patch; if (!okSpot(x, z, p.cover)) continue;
+    for (let k = 0, tries = 0; k < n && tries < n * 14; tries++) {
+      const x = p.x + rr(-0.5, 0.5) * E.patch, z = p.z + rr(-0.5, 0.5) * E.patch;
+      if (rnd() > 0.15 + 0.85 * Math.min(1, Math.max(0, (fbm(x * 0.045 + 9, z * 0.045) - 0.3) / 0.4))) continue;   // clumps and gaps, not an even spread
+      if (!okSpot(x, z, p.cover)) continue;
       const kind = pick(S.mix), u = rnd();
-      const dbh = S.shape === 'reverseJ' ? S.dbh[0] + (S.dbh[1] - S.dbh[0]) * u ** 2.2 : S.dbh[0] + (S.dbh[1] - S.dbh[0]) * (0.5 + (u - 0.5) * 0.8);
+      // uneven-aged stands: many small, few big; planted stands: one cohort, but dominant, co-dominant and suppressed trees
+      const dbh = S.shape === 'reverseJ' ? S.dbh[0] + (S.dbh[1] - S.dbh[0]) * u ** 2.2 : S.dbh[0] + (S.dbh[1] - S.dbh[0]) * Math.min(1, Math.max(0, 0.5 + (u + rnd() - 1) * 0.75));
       const age = S.shape === 'reverseJ' ? Math.round(S.age[0] + (S.age[1] - S.age[0]) * (dbh - S.dbh[0]) / (S.dbh[1] - S.dbh[0])) : Math.round(rr(S.age[0], S.age[1]));
-      add(p, { kind, x, z, dbh: +dbh.toFixed(1), age, status: 'alive' }); k++;
+      // v: this tree's own variation (height, crown, tint); a few spruce dying back (drought, beetles), more near the calamity
+      const dying = kind === 'spruce' && rnd() < (p.cover === 'spruce1962' && Math.hypot(x - E.units.calamity.centre[0], z - E.units.calamity.centre[1]) < 230 ? 0.06 : 0.015);
+      add(p, { kind, x, z, dbh: +dbh.toFixed(1), age, status: dying ? 'dying' : 'alive', v: +rnd().toFixed(3) }); k++;
     }
     for (let k = 0; k < Math.round((S.snagsPerHa || 0) * area); k++) { const x = p.x + rr(-0.5, 0.5) * E.patch, z = p.z + rr(-0.5, 0.5) * E.patch; if (okSpot(x, z, p.cover)) add(p, { kind: 'spruce', x, z, dbh: +rr(26, 44).toFixed(1), age: 64, status: 'snag' }); }
     for (let k = 0; k < Math.round((S.standardsPerHa || 0) * area); k++) { const x = p.x + rr(-0.5, 0.5) * E.patch, z = p.z + rr(-0.5, 0.5) * E.patch; if (okSpot(x, z, p.cover)) add(p, { kind: 'oak', x, z, dbh: +rr(55, 85).toFixed(1), age: Math.round(rr(150, 200)), status: 'alive', standard: true }); }

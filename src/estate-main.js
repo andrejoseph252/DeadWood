@@ -1,5 +1,6 @@
 // The estate view (world.md section 12, E3): the 1 km² forest block around Plot 01, streamed tile by tile at the
-// plot's aesthetic. ?at=x,z starts somewhere else; ?still freezes time; ?canopy=off hides the crowns.
+// plot's aesthetic. ?at=x,z starts somewhere else; ?still freezes time; ?canopy=off hides the crowns; ?detail=0.5 thins
+// the ground cover.
 import * as THREE from 'three';
 import { createPipeline } from './render/pipeline.js';
 import { createCameraRig } from './render/camera.js';
@@ -27,7 +28,8 @@ const rig = createCameraRig(pipeline.renderer.domElement, { half: 470, keys, ove
 const { sun } = addLights(scene, { lite: false, half: 45 });   // a shadow box that follows the camera
 generateEstate();
 
-const shared = { tex: createTextures(createRng(9)), canopy: params.get('canopy') !== 'off' };
+// ?detail=0.5 halves the ground-cover density (for slower machines)
+const shared = { tex: createTextures(createRng(9)), canopy: params.get('canopy') !== 'off', detail: Math.min(1, Math.max(0.2, Number(params.get('detail')) || 1)) };
 // Plot 01 (E4): the plot scene itself, built once into its tile when that tile first comes into range, raised to
 // the estate's elevation; it keeps its hand-placed detail and its own animals
 let plot = null;

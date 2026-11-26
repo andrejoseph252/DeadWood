@@ -36,7 +36,7 @@ A forest ecology game with an academic feel. The player directs a small field st
 - `ui/` — keyboard state, camera toolbar.
 - `estate/` — the 1 km² estate (`world.md` section 12): `terrain.js` (relief, brooks with downhill beds, beaver pond), `cover.js` (land cover and its history), `index.js` (`generateEstate()`: tiles, compartments, patches, ~38k tree records, charcoal platforms). Pure. Map image: `node tools/estate-map.cjs`.
 - `estate/fauna.js` — the estate's animals as data (home ranges on walkable ground), `walkable()`. Pure.
-- `estate/tile-plan.js` — `planTile(i, j)`: what goes where in one tile, from the estate's 2D design, seeded per tile. Pure.
+- `estate/tile-plan.js` — `planTile(i, j)`: what goes where in one tile, from the estate's 2D design, seeded per tile; `tileFields(i, j)`: per-tile grids of height, cover, canopy shade and spruce nearness for fast dense ground cover. Pure.
 - `estate-render/` — `tile.js` (builds a tile from its plan, near or far detail), `stream.js` (tiles around the camera), `map.js` (minimap and full estate map; DOM/canvas), `fauna.js` (estate animals: rigs near the camera). Entry: `src/estate-main.js` → `public/estate.html`.
 - `sim/` — the headless simulation (empty until after the Setting Build).
 - `data/` — `estate.json` (the estate: relief, brooks, pond, units, roads), `fauna.json` (species, what each is doing on the June evening, routes), `map.json` (the 60 m map: wall, stream, outcrop, sett, windthrow…), `plot01.json` (hand-placed heart around the gap), `species.json` (names, render params). Setting Build S1 adds `habitats.json`, `interactions.json`, `history.json` and `map.json`, transcribed from `world.md`.
@@ -46,7 +46,7 @@ A forest ecology game with an academic feel. The player directs a small field st
 **Seeded build order:** every builder draws from one shared random stream. Reordering builders in `world/build-plot.js`, or adding or removing random draws in one, moves everything built after it. That's fine when intended, but a pure refactor should leave the scene identical. To check: `npm run screens` prints the scene fingerprint (`tools/scene-fingerprint.js`: a hash of every static mesh's geometry, transform, material and instance data, skipping animal rigs; you can also paste it into the browser console). Compare before and after.
 
 ## Debug URL parameters
-`?seed=N` · `?still` (freeze time) · `?canopy=off` (hide tree crowns) · `?debug=habitats` (colour the ground by habitat) · `?pix=N` · `?zoom=N` · `?look=x,z` · `?lite`
+Estate page: `?at=x,z` · `?detail=0.5` (thinner ground cover) · `?canopy=off`. Plot page: `?seed=N` · `?still` (freeze time) · `?canopy=off` (hide tree crowns) · `?debug=habitats` (colour the ground by habitat) · `?pix=N` · `?zoom=N` · `?look=x,z` · `?lite`
 
 ## Gotcha from the prototype phase
 When published as a claude.ai artifact, the page's content-security policy blocks `fetch` of `data:` URIs. Load assets as separate same-origin files. (Not an issue on GitHub Pages, but keep assets as normal files anyway.)

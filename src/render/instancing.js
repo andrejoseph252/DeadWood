@@ -8,18 +8,19 @@ import { windify } from './wind.js';
 const dummy = new THREE.Object3D(), tcol = new THREE.Color();
 const CHUNK = 15;
 // group list items by chunk; pos(item) gives [x, z]
-function chunked(list, pos) {
+function chunked(list, pos, size = CHUNK) {
   const m = new Map();
-  for (const it of list) { const [x, z] = pos(it), k = Math.floor(x / CHUNK) * 1000 + Math.floor(z / CHUNK); if (!m.has(k)) m.set(k, []); m.get(k).push(it); }
+  for (const it of list) { const [x, z] = pos(it), k = Math.floor(x / size) * 1000 + Math.floor(z / size); if (!m.has(k)) m.set(k, []); m.get(k).push(it); }
   return [...m.values()];
 }
 
-export function createInstancing(scene) {
+// chunk: chunk size in metres (the estate's tiles pass one chunk per tile: the tile is already the culling unit)
+export function createInstancing(scene, { chunk = CHUNK } = {}) {
   // list items: { x, y, z, rx?, ry?, rz?, s? | sx, sy, sz, c? }
   function instances(geo, mat, list, { cast = false, wind } = {}) {
     if (wind) windify(mat, wind);
     const group = new THREE.Group(); scene.add(group);
-    for (const part of chunked(list, (it) => [it.x, it.z])) {
+    for (const part of chunked(list, (it) => [it.x, it.z], chunk)) {
       const im = new THREE.InstancedMesh(geo, mat, part.length);
       part.forEach((it, i) => {
         dummy.position.set(it.x, it.y, it.z); dummy.rotation.set(it.rx || 0, it.ry || 0, it.rz || 0);
@@ -45,7 +46,7 @@ export function createInstancing(scene) {
     const mat = toon({ map: tex, alphaTest: 0.5, side: THREE.DoubleSide }); windify(mat, { billboard: true, strength: 0.05 });
     const depth = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: tex, alphaTest: 0.5, side: THREE.DoubleSide }); windify(depth, { billboard: true, strength: 0.05 });
     const group = new THREE.Group(); scene.add(group);
-    for (const part of chunked(list, (l) => [l.p.x, l.p.z])) {
+    for (const part of chunked(list, (l) => [l.p.x, l.p.z], chunk)) {
       const q = new THREE.PlaneGeometry(1, 1), aN = new Float32Array(part.length * 3);   // per-chunk geometry: aNormal follows the chunk's instances
       part.forEach((l, i) => aN.set([l.n.x, l.n.y, l.n.z], i * 3)); q.setAttribute('aNormal', new THREE.InstancedBufferAttribute(aN, 3));
       const im = new THREE.InstancedMesh(q, mat, part.length); im.customDepthMaterial = depth;
