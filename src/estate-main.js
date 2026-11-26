@@ -12,6 +12,7 @@ import { createStreamer } from './estate-render/stream.js';
 import { Y0 } from './estate-render/tile.js';
 import { BESPOKE } from './estate/tile-plan.js';
 import { generateEstate, coverAt, height, COVERS, compOf, compName } from './estate/index.js';
+import { createEstateMap } from './estate-render/map.js';
 
 const params = new URLSearchParams(location.search), still = params.has('still');
 const container = document.getElementById('app');
@@ -47,6 +48,15 @@ canopyBtn?.setAttribute('aria-pressed', String(shared.canopy));
 canopyBtn?.addEventListener('click', () => { const on = canopyBtn.getAttribute('aria-pressed') !== 'true'; canopyBtn.setAttribute('aria-pressed', String(on)); streamer.setCanopy(on); });
 const go = document.querySelector('[data-goto]');
 go?.addEventListener('change', () => { if (!go.value) return; const [x, z] = go.value.split(',').map(Number); goto(x, z); go.value = ''; });
+// ---------- the estate map: minimap in the corner, full map on M or the Map button ----------
+const map = createEstateMap({
+  view() {
+    const t = rig.controls.target, c = rig.camera, dx = t.x - c.position.x, dz = t.z - c.position.z, hz = Math.hypot(dx, dz) || 1, elev = Math.atan2(c.position.y - t.y, hz);
+    return { x: t.x, z: t.z, dx: dx / hz, dz: dz / hz, w: (c.right - c.left) / c.zoom, d: (c.top - c.bottom) / c.zoom / Math.max(0.3, Math.sin(elev)) };
+  },
+  onJump: (x, z) => goto(Math.max(-470, Math.min(470, x)), Math.max(-470, Math.min(470, z)), rig.camera.zoom),
+});
+document.querySelector('[data-map]')?.addEventListener('click', () => map.toggle());
 window.__view = (x, z, zoom, canopy = true) => { goto(x, z, zoom ?? HOME); streamer.setCanopy(canopy); while (streamer.update(x, z, 99) > 0); };   // screenshot hook
 window.__estate = { streamer, rig };
 
@@ -65,7 +75,7 @@ pipeline.renderer.setAnimationLoop((now) => {
   const t = rig.controls.target, sx2 = Math.round(t.x), sz2 = Math.round(t.z);   // the shadow box follows, snapped to whole metres
   sun.target.position.set(sx2, t.y, sz2); sun.position.set(sx2, t.y, sz2).addScaledVector(sunDir, 80); sun.target.updateMatrixWorld();
   streamer.update(t.x, t.z, 1);
-  updateLabel();
+  updateLabel(); map.update();
   pipeline.render(rig.camera);
 });
 document.body.classList.add('ready');

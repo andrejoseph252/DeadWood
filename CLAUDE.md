@@ -36,7 +36,7 @@ A forest ecology game with an academic feel. The player directs a small field st
 - `ui/` — keyboard state, camera toolbar.
 - `estate/` — the 1 km² estate (`world.md` section 12): `terrain.js` (relief, brooks with downhill beds, beaver pond), `cover.js` (land cover and its history), `index.js` (`generateEstate()`: tiles, compartments, patches, ~38k tree records, charcoal platforms). Pure. Map image: `node tools/estate-map.cjs`.
 - `estate/tile-plan.js` — `planTile(i, j)`: what goes where in one tile, from the estate's 2D design, seeded per tile. Pure.
-- `estate-render/` — `tile.js` (builds a tile from its plan, near or far detail), `stream.js` (tiles around the camera). Entry: `src/estate-main.js` → `public/estate.html`.
+- `estate-render/` — `tile.js` (builds a tile from its plan, near or far detail), `stream.js` (tiles around the camera), `map.js` (minimap and full estate map; DOM/canvas). Entry: `src/estate-main.js` → `public/estate.html`.
 - `sim/` — the headless simulation (empty until after the Setting Build).
 - `data/` — `estate.json` (the estate: relief, brooks, pond, units, roads), `fauna.json` (species, what each is doing on the June evening, routes), `map.json` (the 60 m map: wall, stream, outcrop, sett, windthrow…), `plot01.json` (hand-placed heart around the gap), `species.json` (names, render params). Setting Build S1 adds `habitats.json`, `interactions.json`, `history.json` and `map.json`, transcribed from `world.md`.
 
