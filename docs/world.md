@@ -747,6 +747,7 @@ Sycamore (6.1) is common here.
 ### Build steps (E1–E5)
 
 1. **E1 — The estate in data.** A seeded, headless generator: terrain, brooks, the landscape units, the land-use history, compartments, patches and initial tree records. Tests, plus a rendered map image for review.
+   *Done: `src/estate/` (terrain, cover, generator) and `src/data/estate.json`; `test/estate.test.js`; `node tools/estate-map.cjs` renders `docs/estate/estate-map.png`. About 38,000 starting trees. Densities and sizes per cover are an illustrative starting state, not yet sourced parameters; growth with published gap-model parameters comes with the simulation.*
 2. **E2 — The estate map view.** Compartments, stand types and history, with a click to jump into 3D.
 3. **E3 — Streaming 3D.** Tiles built around the camera from the estate data; full detail near, impostor trees further out; animals as populations, spawned as rigs near the camera.
 4. **E4 — Plot 01 as the anchor tile.** The hand-authored plot drops into tile (8, 8) and blends with its neighbours.

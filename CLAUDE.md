@@ -34,10 +34,11 @@ A forest ecology game with an academic feel. The player directs a small field st
 - `world/obstacles.js` — where animals can't walk (trunks, water, wall, rocks, root plates, logs). Pure; `test/fauna.test.js` checks every route in `data/fauna.json` against it.
 - `render/` — `pipeline.js` (renderer, low-res target, pixel post pass), `camera.js` (map controls, follow, keyboard), `lights.js`, `materials.js` (toon ramp), `wind.js`, `textures.js`, `instancing.js` (splits instanced meshes into 15 m chunks for frustum culling).
 - `ui/` — keyboard state, camera toolbar.
+- `estate/` — the 1 km² estate (`world.md` section 12): `terrain.js` (relief, brooks with downhill beds, beaver pond), `cover.js` (land cover and its history), `index.js` (`generateEstate()`: tiles, compartments, patches, ~38k tree records, charcoal platforms). Pure. Map image: `node tools/estate-map.cjs`.
 - `sim/` — the headless simulation (empty until after the Setting Build).
-- `data/` — `fauna.json` (species, what each is doing on the June evening, routes), `map.json` (the 60 m map: wall, stream, outcrop, sett, windthrow…), `plot01.json` (hand-placed heart around the gap), `species.json` (names, render params). Setting Build S1 adds `habitats.json`, `interactions.json`, `history.json` and `map.json`, transcribed from `world.md`.
+- `data/` — `estate.json` (the estate: relief, brooks, pond, units, roads), `fauna.json` (species, what each is doing on the June evening, routes), `map.json` (the 60 m map: wall, stream, outcrop, sett, windthrow…), `plot01.json` (hand-placed heart around the gap), `species.json` (names, render params). Setting Build S1 adds `habitats.json`, `interactions.json`, `history.json` and `map.json`, transcribed from `world.md`.
 
-**Headless boundary:** `sim/`, `world/plot.js` (with `fields.js` and `layout.js`) and `core/` must not import three.js or any package. `test/boundaries.test.js` walks their import graphs and fails if they do.
+**Headless boundary:** `sim/`, `estate/`, `world/plot.js` (with `fields.js` and `layout.js`) and `core/` must not import three.js or any package. `test/boundaries.test.js` walks their import graphs and fails if they do.
 
 **Seeded build order:** every builder draws from one shared random stream. Reordering builders in `main.js`, or adding or removing random draws in one, moves everything built after it. That's fine when intended, but a pure refactor should leave the scene identical. To check: `npm run screens` prints the scene fingerprint (`tools/scene-fingerprint.js`: a hash of every static mesh's geometry, transform, material and instance data, skipping animal rigs; you can also paste it into the browser console). Compare before and after.
 

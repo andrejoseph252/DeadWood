@@ -1,0 +1,38 @@
+{
+  "_about": "The 1 km2 estate around Plot 01 (docs/world.md section 12). Estate metres, origin at the centre, +x east, +z south. Shapes are hand-designed and noise-perturbed by src/estate/. Plot 01 occupies tile (8, 8); plot-local = estate - plot.origin.",
+  "size": 1000,
+  "tile": 62.5,
+  "compartment": 125,
+  "patch": 31.25,
+  "seed": 1962,
+  "plot": { "tile": [8, 8], "origin": [31.25, 31.25] },
+  "relief": {
+    "_note": "metres above sea level: base + tilt*(-x - z) + ridge + valley carving + noise",
+    "base": 392, "tilt": 0.028,
+    "ridge": { "from": [-520, -300], "to": [-110, -520], "height": 34, "width": 150, "cliff": 9 },
+    "noise": [[120, 6], [32, 1.4]]
+  },
+  "brooks": {
+    "_note": "centre lines, downstream; depth of the cut channel, valley width carved around it",
+    "main": { "points": [[-520, -150], [-360, -60], [-250, 20], [-120, 110], [0, 150], [110, 190], [205, 232], [250, 250], [300, 268], [360, 300], [520, 362]], "depth": 0.6, "halfWidth": 1.6, "valley": { "depth": 11, "width": 70 } },
+    "gorge": { "points": [[-238, -430], [-256, -300], [-244, -150], [-250, 20]], "depth": 0.45, "halfWidth": 1.0, "valley": { "depth": 14, "width": 26 } },
+    "plot01": { "_note": "Plot 01's stream (plot-local points from map.json shifted by the plot origin), on to the main brook", "points": [[16.75, 39.25], [20.25, 42.25], [24.25, 45.75], [29.25, 47.75], [34.25, 49.25], [40.25, 50.45], [44.25, 51.65], [47.85, 55.85], [49.85, 61.75], [64, 100], [88, 150], [110, 190]], "depth": 0.35, "halfWidth": 0.7, "valley": { "depth": 3, "width": 18 } },
+    "eastSpring": { "points": [[330, -205], [312, -60], [290, 110], [260, 236]], "depth": 0.35, "halfWidth": 0.8, "valley": { "depth": 5, "width": 24 } }
+  },
+  "pond": { "_note": "beaver pond behind a dam across the main brook", "centre": [238, 246], "rx": 46, "rz": 22, "yaw": 0.36, "dam": [286, 262] },
+  "wallLine": { "_note": "the old pasture boundary: x of the wall by z, through Plot 01 (plot wall at plot-local x ~ 11.4)", "x0": 42.6, "amp": 6, "freq": 0.011 },
+  "units": {
+    "_note": "noise-perturbed ellipses: centre, radii, rotation (radians)",
+    "calamity": { "centre": [318, -292], "rx": 150, "rz": 120, "yaw": 0.3, "snags": { "centre": [250, -330], "r": 38 } },
+    "farmstead": { "centre": [-232, 362], "rx": 158, "rz": 112, "yaw": -0.15, "buildings": [-196, 330], "orchard": { "centre": [-305, 300], "r": 58 } },
+    "coppice": { "centre": [-356, 118], "rx": 118, "rz": 78, "yaw": 0.25 },
+    "quarry": { "centre": [362, -40], "rx": 46, "rz": 30, "yaw": 0.5, "pond": { "centre": [372, -34], "r": 12 } }
+  },
+  "roads": {
+    "_note": "gravel forest road and spurs; the bridge is where the road crosses the main brook",
+    "valley": [[-210, 352], [-120, 300], [0, 262], [120, 280], [210, 318], [360, 380], [520, 430]],
+    "north": [[120, 280], [140, 205], [152, 100], [162, -100], [230, -200], [300, -250], [420, -280]],
+    "quarry": [[162, -100], [270, -70], [345, -48]]
+  },
+  "charcoal": { "_note": "number of charcoal platforms scattered through the ancient wood (c. 1700-1860)", "count": 34, "minSpacing": 45 }
+}
