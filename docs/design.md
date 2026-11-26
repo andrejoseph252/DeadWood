@@ -6,6 +6,7 @@
 - **Tone:** academic, a proper ecology way of thinking: the scientific method as the core loop.
 
 ## Setting
+*Superseded in detail by `docs/world.md` (60 × 60 m plot, seven habitats, full species roster). The notes below are the prototype's starting point.*
 - One 28 × 28 m plot of Central European mixed forest around a sunlit canopy gap, shown as a diorama block with soil horizons at the cut edges, corner stakes and a boundary string.
 - Starting condition idea: a struggling plot (spruce under drought and bark-beetle stress, too many deer, little dead wood) to be turned into a resilient mixed forest. Alternative: an empty clearing. Not final.
 - Species in the prototype:

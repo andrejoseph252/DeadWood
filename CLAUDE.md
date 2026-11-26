@@ -1,9 +1,11 @@
 # CLAUDE.md — working notes for Claude Code
 
-Read `docs/design.md` and `docs/roadmap.md` before starting a task. Work on one roadmap step per session unless told otherwise.
+Read `docs/world.md` first: it is the source of truth for what exists in the world (place, habitats, species, interactions) and holds the current task, the **Setting Build, steps S0–S8** (its section 10). If the code and `world.md` disagree, the document wins; if `world.md` looks ecologically wrong, flag it rather than quietly fixing it in code. `docs/design.md` (game design) and `docs/roadmap.md` (the longer plan) give the context.
+
+Work on one step per session unless told otherwise, and don't start a step until the previous one passes its "done when" checks.
 
 ## What this is
-A forest ecology game with an academic feel. The player directs a small field station on one 28 × 28 m plot (1 world unit = 1 m). Field agents carry out jobs the player sets up physically on the map (drag a fence line, drop a quadrat, aim a camera trap, paint-mark trees). The ecosystem is simulated and the player only learns its state through measurement.
+A forest ecology game with an academic feel. The player directs a small field station on one research plot (1 world unit = 1 m). The plot is growing from the prototype's 28 × 28 m to the 60 × 60 m described in `world.md`; the current 28 m scene becomes its canopy gap. Field agents carry out jobs the player sets up physically on the map (drag a fence line, drop a quadrat, aim a camera trap, paint-mark trees). The ecosystem is simulated and the player only learns its state through measurement.
 
 ## Rules
 - Keep the **simulation** separate from **rendering**. The sim must run headless (no three.js imports) so it can be tested and fast-forwarded. Rendering reads sim state.
@@ -12,7 +14,13 @@ A forest ecology game with an academic feel. The player directs a small field st
 - Visual style: 3D scene rendered at low resolution as pixel art (banded toon light, crisp shadows, depth outlines, nearest-neighbour upscale). Keep silhouettes readable; avoid floating or noisy elements.
 - Animals are rigs built facing −x, with pivot joints (neck, head, ears, tail, legs, wings) for animation.
 - Deterministic randomness (seeded) so a plot can be regenerated identically.
-- After each change: `npm test`, `npm run build`, open the page, check the console for errors.
+- After each change: `npm test`, `npm run build`, then `npm run screens -- <set> --compare <previous set>` (see below).
+
+## Quality gate: screenshots
+`npm run screens -- <set>` loads the built page in headless Chromium with `?still` (time frozen), saves a fixed set of viewpoints to `docs/screens/<set>/`, fails on any console error, and checks determinism (same seed → same scene fingerprint and identical frames; another seed → another scene). Add `--compare <base>` to diff each shot against an earlier set.
+- A **pure refactor** must report `same` for every shot.
+- A step that **changes the look** will report `DIFF`: then look at the shots against the baseline yourself, and commit the new set (e.g. `docs/screens/s2/`) as the next baseline.
+- The viewpoint list lives in `tools/screens.cjs`. Add viewpoints as the world grows; don't change existing ones.
 
 ## Module map (`src/`)
 - `main.js` — wires everything together and runs the builders **in a fixed order** (see below).
@@ -23,12 +31,12 @@ A forest ecology game with an academic feel. The player directs a small field st
 - `fauna/` — `parts.js` (ellipsoid / segment / pivot helpers), `rigs.js` (one `makeX()` per animal), `behaviours.js` (motion state machines), `index.js` (placement).
 - `render/` — `pipeline.js` (renderer, low-res target, pixel post pass), `camera.js` (map controls, follow, keyboard), `lights.js`, `materials.js` (toon ramp), `wind.js`, `textures.js`, `instancing.js`.
 - `ui/` — keyboard state, camera toolbar.
-- `sim/` — the headless simulation (empty until roadmap step 1).
-- `data/` — `plot01.json` (hand-placed starting layout), `species.json` (names, render params; growth params with sources from step 1).
+- `sim/` — the headless simulation (empty until after the Setting Build).
+- `data/` — `plot01.json` (hand-placed starting layout), `species.json` (names, render params). Setting Build S1 adds `habitats.json`, `interactions.json`, `history.json` and `map.json`, transcribed from `world.md`.
 
 **Headless boundary:** `sim/`, `world/plot.js` and `core/` must not import three.js or any package. `test/boundaries.test.js` walks their import graphs and fails if they do.
 
-**Seeded build order:** every builder draws from one shared random stream. Reordering builders in `main.js`, or adding or removing random draws in one, moves everything built after it. That's fine when intended, but a pure refactor should leave the scene identical. To check: before and after, paste `tools/scene-fingerprint.js` into the browser console (hash of every static mesh's geometry, transform, material and instance data, skipping animal rigs) and compare.
+**Seeded build order:** every builder draws from one shared random stream. Reordering builders in `main.js`, or adding or removing random draws in one, moves everything built after it. That's fine when intended, but a pure refactor should leave the scene identical. To check: `npm run screens` prints the scene fingerprint (`tools/scene-fingerprint.js`: a hash of every static mesh's geometry, transform, material and instance data, skipping animal rigs; you can also paste it into the browser console). Compare before and after.
 
 ## Gotcha from the prototype phase
 When published as a claude.ai artifact, the page's content-security policy blocks `fetch` of `data:` URIs. Load assets as separate same-origin files. (Not an issue on GitHub Pages, but keep assets as normal files anyway.)

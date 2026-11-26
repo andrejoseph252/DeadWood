@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "esbuild src/main.js --bundle --outfile=public/main.js --servedir=public --watch",
     "build": "esbuild src/main.js --bundle --minify --outfile=public/main.js",
-    "test": "node --test \"test/*.test.js\""
+    "test": "node --test \"test/*.test.js\"",
+    "screens": "node tools/screens.cjs"
   },
   "dependencies": {
     "three": "0.169.0"

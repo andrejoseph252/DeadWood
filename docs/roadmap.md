@@ -3,6 +3,7 @@
 Depth on one plot before going bigger. Play each step before starting the next.
 
 - [x] **0. Project structure** — split `src/main.js` into modules: `render/` (renderer, pixel post pass, camera), `world/` (terrain, plot, layout), `flora/`, `fauna/` (rigs + behaviours), `ui/`, and an empty `sim/` that imports nothing from three.js. Species parameters in `data/*.json`. GitHub Pages deploy. *(Done: scene verified identical to the prototype by fingerprint; headless boundary enforced by `npm test`. Pages workflow is in place and goes live once the repo is pushed to GitHub.)*
+- [ ] **Setting Build (S0–S8)** — build the full 60 × 60 m world from `docs/world.md` before the simulation: data files, terrain and seven habitats, trees as data records, ground flora and signs, animals with routes and scripted interactions, time of day, seasons, review. Steps and "done when" checks are in `world.md` section 10. *(S0 done; next: S1 data files.)*
 - [ ] **1. Time and growth** — clock with pause / play / fast-forward; seasons; trees grow, compete for light and die; saplings fill the gap; seasonal colour.
 - [ ] **2. Station and first agent** — tent and one agent; the agent walks the plot and carries out one physically set-up job (e.g. measure the trees you mark); results recorded in a field journal.
 - [ ] **3. Click to inspect** — select any tree, plant or animal: what it is, its state, and why ("beech sapling, 1.2 m, shaded, browsed last spring").

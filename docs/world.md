@@ -20,7 +20,7 @@ This document is the single source of truth for what exists in the world: the pl
 - No ambient floating particles: no motes, pollen dots or random falling leaves. Anything that moves in the air must be a real thing with a cause, such as a butterfly or a seed falling from a specific plant.
 - All randomness is seeded. The same seed must give the same world.
 - World state is data, and the renderer draws that state. Every tree, log and animal is a record with an id before it becomes a mesh, because the simulation will take ownership of those records later.
-- Species, habitats and interactions live in `data/*.json`, transcribed from this document. Never hard-code species facts inside render code.
+- Species, habitats and interactions live in `src/data/*.json`, transcribed from this document. Never hard-code species facts inside render code.
 - Ecological facts must stay real. If something here looks wrong, flag it; don't quietly "fix" it in code.
 
 ---
@@ -509,6 +509,15 @@ Each step ends with screenshots from a fixed set of viewpoints, and with a check
 - Replace every `Math.random()` with the seeded RNG.
 - Keep the debug URL parameters (`?pix`, `?zoom`, `?look`) and add `?seed=`.
 - **Done when:** screenshots match the current build closely, and the same seed gives identical frames.
+- **Status: done** (roadmap step 0 plus a close-out commit). The split used different names from the list above; these are the real ones, and later steps should use them:
+  - pixel pipeline and post shader: `src/render/pipeline.js`
+  - terrain: `src/world/plot.js` (fields, pure) and `src/world/ground.js` (meshes)
+  - flora: `src/flora/*`; fauna: `src/fauna/*` (`rigs.js`, `behaviours.js`)
+  - research kit: `src/world/kit.js`
+  - seeded RNG: `src/core/random.js` (Park–Miller, not mulberry32)
+  - data files: `src/data/*.json`
+- URL parameters: `?pix`, `?zoom`, `?look`, `?lite`, plus `?seed=N` and `?still` (frozen time, for comparable screenshots).
+- Checked with `npm run screens`: the scene fingerprint matches the prototype exactly, and the same seed gives pixel-identical frames. Baseline shots are in `docs/screens/s0/`.
 
 ### S1 — Data files
 
