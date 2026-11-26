@@ -87,6 +87,7 @@ const fingerprintSrc = fs.readFileSync(path.join(__dirname, 'scene-fingerprint.j
 
   async function open(q, size = [1280, 800]) {
     const page = await browser.newPage({ viewport: { width: size[0], height: size[1] }, deviceScaleFactor: 1 });
+    page.setDefaultTimeout(600000);   // software rendering of the 60 m plot can take minutes per frame
     page.on('console', (m) => { if (m.type() === 'error') errors.push(`${q || '(default)'}: ${m.text()}`); });
     page.on('pageerror', (e) => errors.push(`${q || '(default)'}: ${e}`));
     await page.goto(url + '?still' + (q ? '&' + q : ''));
