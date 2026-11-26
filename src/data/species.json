@@ -37,9 +37,9 @@
       "sources": []
     },
     "oak": {
-      "scientific": "Quercus robur",
-      "common": "Pedunculate oak",
-      "_note": "design.md says only 'Quercus'; Q. robur assumed. Q. petraea (sessile oak) is the other common Central European oak. docs/world.md (Nov 2026) names sessile oak, Q. petraea; switch when the species data is transcribed (Setting Build S1).",
+      "scientific": "Quercus petraea",
+      "common": "Sessile oak",
+      "_note": "docs/world.md section 6.1: sessile oak. (The prototype assumed Q. robur.)",
       "render": {
         "bark": "#5b4935",
         "trunk": {

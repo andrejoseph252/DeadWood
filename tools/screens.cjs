@@ -43,6 +43,12 @@ const VIEWS = [
   { name: 'pioneer-edge', look: [15, 15], zoom: 2 },
   { name: 'stream', look: [-8, 13], zoom: 2 },
   { name: 'outcrop', look: [-17, 11], zoom: 2.2 },
+  // Stage A detail (close-ups of the micro-scenes)
+  { name: 'spring', look: [-13.5, 9], zoom: 3.6 },
+  { name: 'backwater', look: [-5, 16], zoom: 3.6 },
+  { name: 'root-plate', look: [15.2, 6], zoom: 3.4 },
+  { name: 'anvil', look: [13.8, -4.8], zoom: 4 },
+  { name: 'latrines', look: [10, -12], zoom: 3.4 },
 ];
 
 const args = process.argv.slice(2);

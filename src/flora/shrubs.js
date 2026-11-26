@@ -18,7 +18,8 @@ export function buildShrubs({ rng, tex, sprites }, clumps) {
     for (let k = 0; k < (bramble ? 14 : 9); k++) {
       const a = rnd() * 6.28, d = Math.sqrt(rnd()) * R, p = new THREE.Vector3(x + Math.cos(a) * d, gy + H * rr(0.3, 1), z + Math.sin(a) * d);
       clumps.low.push({ p, n: new THREE.Vector3(Math.cos(a), 0.8, Math.sin(a)).normalize(), s: rr(0.42, 0.65), c: bramble ? pick(['#3f6a2a', '#365e25', '#4a7a30']) : pick(['#4c7d34', '#5a8c3a']) });
-      if (rnd() < 0.5) berries.push({ x: p.x + rr(-0.15, 0.15), y: p.y + 0.08, z: p.z + rr(-0.15, 0.15), c: bramble ? pick(['#2a1430', '#3a1c40', '#f2e8ee', '#c43a3a']) : '#3b4f9a', s: 0.1 });
+      // June: bramble in flower with hard green fruit; bilberry fruit still green (ripens in July)
+      if (rnd() < (bramble ? 0.5 : 0.25)) berries.push({ x: p.x + rr(-0.15, 0.15), y: p.y + 0.08, z: p.z + rr(-0.15, 0.15), c: bramble ? pick(['#f2e8ee', '#f4dce4', '#f2e8ee', '#7a9a3a']) : '#8aa04a', s: bramble ? 0.1 : 0.07 });
     }
   }
   for (const [x, z] of [[5.0, -11.6], [14.2, 14.2]]) {  // elder: by the sett (badgers scratch it; nitrogen-rich soil) and on the old pasture

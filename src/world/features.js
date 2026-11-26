@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { C, toon, tm } from '../render/materials.js';
 import { makeRock } from './props.js';
-import { HALF, TREES, STUMPS, PLATES, SETT, STREAM, height, wallX, streamD, outcropEdge, MAP } from './plot.js';
+import { HALF, TREES, STUMPS, PLATES, SETT, STREAM, height, wallX, streamD, outcropEdge, pathZ, MAP } from './plot.js';
 
 const GREY = ['#8a867c', '#76726a', '#9b968a'], MOSS = ['#3f6b22', '#4e7a2a', '#5d8a2f', '#466f26'];
 const SANDSTONE = { stone: ['#9a8a6e', '#a89878', '#8a7b62'], lichen: '#c4bf8c', squash: 0.8, sink: 0.05 };
@@ -19,12 +19,12 @@ function buildWall({ rng, instances }) {
   const list = [], trunks = TREES.filter((t) => t.r);
   for (let z = -HALF + 0.25; z < HALF - 0.25; z += 0.3) {
     const cx = wallX(z);
-    if (streamD(cx, z) < 1.3) continue;
+    if (streamD(cx, z) < 1.3 || Math.abs(z - pathZ(cx)) < 0.8) continue;   // breaches: the stream, and the deer crossing
     for (let k = 0; k < 3; k++) {
       const fallen = rnd() < 0.08, x = cx + (fallen ? rr(-1.3, 1.3) : rr(-0.45, 0.45)), zz = z + rr(-0.12, 0.12), s = rr(0.13, 0.28);
       if (trunks.some((t) => Math.hypot(t.x - x, t.z - zz) < 0.7)) continue;
       const mossy = rnd() < (fallen ? 0.4 : 0.7);
-      list.push({ x, y: height(x, zz) - s * 0.15 + (fallen ? -0.05 : rr(0, 0.1)), z: zz, rx: rr(-0.4, 0.4), ry: rnd() * 6.28, sx: s * rr(1, 1.5), sy: s * rr(0.6, 0.9), sz: s, c: mossy ? pick(MOSS) : pick(GREY) });
+      list.push({ x, y: height(x, zz) - s * (fallen ? 0.35 : 0.25) + rr(0, 0.06), z: zz, rx: rr(-0.4, 0.4), ry: rnd() * 6.28, sx: s * rr(1, 1.5), sy: s * rr(0.6, 0.9), sz: s, c: mossy ? pick(MOSS) : pick(GREY) });
     }
   }
   instances(new THREE.IcosahedronGeometry(1, 0), toon(), list, { cast: true });
@@ -71,13 +71,13 @@ function buildWindthrow({ scene, rng, instances }) {
     const plate = new THREE.Mesh(g, toon({ vertexColors: true })); plate.position.set(p.x, gy + p.r * 0.72, p.z); plate.rotation.y = -p.yaw; plate.castShadow = plate.receiveShadow = true; scene.add(plate);
     // broken roots sticking out of the plate's rim
     for (let k = 0; k < 14; k++) { const a = rnd() * Math.PI * 2, rr0 = p.r * rr(0.8, 1.0); roots.push({ x: p.x - p.dz * Math.cos(a) * rr0, y: gy + p.r * 0.72 + Math.sin(a) * rr0, z: p.z + p.dx * Math.cos(a) * rr0, rx: rr(-0.5, 0.5), ry: -p.yaw + Math.PI / 2, rz: a - Math.PI / 2 + rr(-0.4, 0.4), sx: 1, sy: rr(0.3, 0.7), sz: 1, c: '#4a3626' }); }
-    // trunk: from the plate's face to the ground at its tip, bark partly flaked off by woodpeckers
+    // trunk: from the plate's face to the ground at its tip. Eight summers on, most bark is gone and the wood is silver-grey
     const base = new THREE.Vector3(p.x + p.dx * 0.25, gy + 0.55, p.z + p.dz * 0.25);
     const tx = p.x + p.dx * len, tz = p.z + p.dz * len, tip = new THREE.Vector3(tx, height(tx, tz) + 0.14, tz);
     const dir = tip.clone().sub(base), L = dir.length();
     const tg = new THREE.CylinderGeometry(0.11, 0.24, L, 8, 6); tg.translate(0, L / 2, 0);
     const tp = tg.attributes.position, tcol = new Float32Array(tp.count * 3);
-    for (let i = 0; i < tp.count; i++) { const c = C(rnd() < 0.3 ? '#a3998a' : pick(['#5e3a26', '#6a4430', '#553422'])); tcol.set([c.r, c.g, c.b], i * 3); }
+    for (let i = 0; i < tp.count; i++) { const c = C(rnd() < 0.25 ? pick(['#5e3a26', '#6a4430']) : pick(['#8a857a', '#9a958a', '#7e786c'])); tcol.set([c.r, c.g, c.b], i * 3); }
     tg.setAttribute('color', new THREE.BufferAttribute(tcol, 3));
     const trunk = new THREE.Mesh(tg, toon({ vertexColors: true })); trunk.position.copy(base); trunk.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize()); trunk.castShadow = trunk.receiveShadow = true; scene.add(trunk);
     // grey dead branches along the upper trunk
@@ -88,6 +88,11 @@ function buildWindthrow({ scene, rng, instances }) {
   }
   const stub = new THREE.CylinderGeometry(0.012, 0.03, 1, 4); stub.translate(0, 0.5, 0);
   instances(stub, toon(), stubs, { cast: true });
+  // turkey tail and grey bracket fungi along the logs
+  const br = [];
+  for (const p of PLATES) for (let k = 0; k < 5; k++) { const t = rr(1.2, Math.min(p.len, 5)), x = p.x + p.dx * t, z = p.z + p.dz * t, sd = rnd() < 0.5 ? -1 : 1;
+    br.push({ x: x - p.dz * 0.2 * sd, y: height(x, z) + rr(0.25, 0.4), z: z + p.dx * 0.2 * sd, ry: -p.yaw, s: rr(0.8, 1.2), c: pick(['#6b5a4a', '#a89a84', '#8a8a80']) }); }
+  { const b = new THREE.SphereGeometry(0.08, 7, 3, 0, Math.PI * 2, 0, Math.PI / 2); b.scale(1, 0.35, 0.8); instances(b, toon(), br); }
   const root = new THREE.CylinderGeometry(0.02, 0.05, 1, 4); root.translate(0, 0.5, 0);
   instances(root, toon(), roots, { cast: true });
 }

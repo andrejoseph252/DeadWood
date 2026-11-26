@@ -7,7 +7,9 @@
     {"kind": "oak", "x": -9.5, "z": 8.5, "h": 9, "r": 4.6, "ivy": true},
     {"kind": "birch", "x": -2.5, "z": -11.4, "h": 9, "r": 2.2},
     {"kind": "birch", "x": 12.9, "z": 9.8, "h": 8.5, "r": 2.0},
-    {"kind": "snag", "x": 6.2, "z": -4.8, "h": 7, "r": 0}
+    {"kind": "snag", "x": 6.2, "z": -4.8, "h": 7, "r": 0},
+    {"kind": "snag", "x": 18.3, "z": 5.6, "h": 6.5, "r": 0, "spruce": true, "_note": "beetle-killed spruce by the wren's root plate; its broken top is the robin's song post"},
+    {"kind": "alder", "x": -5.6, "z": 17.4, "h": 8.8, "r": 2.6, "_note": "alder over the salamander backwater, roots arching into the pool"}
   ],
   "saplings": [
     {"kind": "beech", "x": -2.5, "z": 3.5, "h": 2.4},

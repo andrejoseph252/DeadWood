@@ -19,7 +19,12 @@ export const sample = (rng, m = 0.3) => [rng.rr(-HALF + m, HALF - m), rng.rr(-HA
 const pathCore = (x) => 1.2 + 2.6 * Math.sin(x / 5.5) - x * 0.3;
 const pathEnds = (x) => (x > 0 ? -0.6 - (x - 12) * 0.05 : 2.4 - (-12 - x) * 0.35);
 export const pathZ = (x) => { const b = sstep(10, 14, Math.abs(x)); return pathCore(x) * (1 - b) + pathEnds(x) * b; };
-export const pathW = (x, z) => sstep(0.75, 0.3, Math.abs(z - pathZ(x)) + (vnoise(x * 0.9, z * 0.9) - 0.5) * 0.5);
+const TRAILS = Object.values(map.trails).filter((t) => t.points).map((t) => ({ w: t.w, seg: t.points.slice(1).map(([x1, z1], i) => { const [x0, z0] = t.points[i]; return { x0, z0, dx: x1 - x0, dz: z1 - z0, l2: (x1 - x0) ** 2 + (z1 - z0) ** 2 }; }) }));
+const segDist = (x, z, s) => { const t = Math.max(0, Math.min(1, ((x - s.x0) * s.dx + (z - s.z0) * s.dz) / s.l2)); return Math.hypot(x - s.x0 - s.dx * t, z - s.z0 - s.dz * t); };
+export const trailW = (x, z) => TRAILS.reduce((m, t) => Math.max(m, sstep(t.w * 1.6, t.w * 0.6, Math.min(...t.seg.map((s) => segDist(x, z, s))) + (vnoise(x * 1.3, z * 1.3) - 0.5) * t.w)), 0);
+export const pathW = (x, z) => Math.max(sstep(0.75, 0.3, Math.abs(z - pathZ(x)) + (vnoise(x * 0.9, z * 0.9) - 0.5) * 0.5), trailW(x, z));
+
+const deerPathW = (x, z) => sstep(1.4, 0.4, Math.abs(z - pathZ(x)));
 
 // ---------- gap, puddle, boar ----------
 // where the animals start; the ground there is kept clear of tall grass so they stay readable
@@ -39,14 +44,23 @@ export const STREAM = map.stream.points;
 export const SPRING = map.spring;
 export const BACKWATER = map.backwater;
 const SEG = STREAM.slice(1).map(([x1, z1], i) => { const [x0, z0] = STREAM[i]; const dx = x1 - x0, dz = z1 - z0; return { x0, z0, dx, dz, l2: dx * dx + dz * dz }; });
-// distance from (x, z) to the stream centre line
-export function streamD(x, z) {
-  let best = Infinity;
+{ let s0 = 0; for (const s of SEG) { s.s0 = s0; s.len = Math.sqrt(s.l2); s0 += s.len; } }
+export const STREAM_LEN = SEG.reduce((a, s) => a + s.len, 0);
+// nearest point on the stream centre line: distance d and distance s downstream from the spring
+export function streamNear(x, z) {
+  let d = Infinity, at = 0;
   for (const s of SEG) {
     const t = Math.max(0, Math.min(1, ((x - s.x0) * s.dx + (z - s.z0) * s.dz) / s.l2));
-    best = Math.min(best, Math.hypot(x - s.x0 - s.dx * t, z - s.z0 - s.dz * t));
+    const dd = Math.hypot(x - s.x0 - s.dx * t, z - s.z0 - s.dz * t);
+    if (dd < d) { d = dd; at = s.s0 + t * s.len; }
   }
-  return best;
+  return { d, s: at };
+}
+export const streamD = (x, z) => streamNear(x, z).d;
+// a point on the centre line at distance s from the spring
+export function streamAt(s) {
+  const g = SEG.find((q) => s <= q.s0 + q.len) || SEG[SEG.length - 1], t = Math.min(1, (s - g.s0) / g.len);
+  return [g.x0 + g.dx * t, g.z0 + g.dz * t];
 }
 // 0..1 how much of the channel / pools is cut at (x, z); 1 = the bed
 export function channelW(x, z) {
@@ -83,7 +97,8 @@ const flat = (x, z, cx, cz, r) => sstep(r, r * 0.55, Math.hypot(x - cx, z - cz))
 const PUD_FLAT = (x, z) => flat(x, z, PUDDLE.x, PUDDLE.z, PUDDLE.r * 2.2);
 const CH_LEVEL = slope(CH.x, CH.z);
 
-export function height(x, z) {
+// the ground before the stream is cut into it
+function baseHeight(x, z) {
   // regional slope, levelled under the puddle so its water lies flat
   let s = slope(x, z); s += (slope(PUDDLE.x, PUDDLE.z) - s) * PUD_FLAT(x, z);
   let h = s + (fbm(x * 0.09 + 4, z * 0.09) - 0.5) * 1.4 + (vnoise(x * 0.4, z * 0.4) - 0.5) * 0.28;
@@ -93,15 +108,31 @@ export function height(x, z) {
   h -= sstep(1.1, 0.2, puddleD(x, z)) * 0.32;
   // outcrop: a stepped sandstone shelf with a rough top
   const o = outcropW(x, z); h += o * (O.height + (vnoise(x * 0.6, z * 0.6) - 0.5) * 0.5);
-  // stream channel and pools
-  h -= channelW(x, z) * map.stream.depth;
   // wall ridge (cut where the stream runs through it)
-  const dw = Math.abs(x - wallX(z)); h += sstep(W.halfWidth * 1.8, W.halfWidth * 0.4, dw) * W.height * sstep(0.9, 2.2, streamD(x, z));
+  // (breached where the stream runs through it and where the deer path crosses)
+  const dw = Math.abs(x - wallX(z)); h += sstep(W.halfWidth * 1.8, W.halfWidth * 0.4, dw) * W.height * sstep(0.9, 2.2, streamD(x, z)) * (1 - 0.75 * sstep(0.3, 0.9, deerPathW(x, z)));
   // sett bank and spoil heaps
   h += settBankW(x, z) * SB.h + spoilW(x, z) * 0.32;
   // windthrow pits
   h -= pitW(x, z) * 0.45;
   return h;
+}
+
+// The stream bed: the ground along the centre line, lowered by the channel depth, and never rising downstream
+// (a running minimum), so the water always runs downhill. The channel is cut down to this bed.
+const BED_STEP = 0.25;
+const BED = (() => {
+  const out = []; let lo = Infinity;
+  for (let s = 0; s <= STREAM_LEN + BED_STEP; s += BED_STEP) { const [x, z] = streamAt(s); lo = Math.min(lo, baseHeight(x, z) - map.stream.depth); out.push(lo); }
+  return out;
+})();
+export const bedAt = (s) => { const i = Math.max(0, Math.min(BED.length - 2, Math.floor(s / BED_STEP))), f = Math.min(1, s / BED_STEP - i); return BED[i] + (BED[i + 1] - BED[i]) * f; };
+export const waterAt = (s) => bedAt(s) + 0.13;   // water surface over the bed
+
+export function height(x, z) {
+  const h = baseHeight(x, z), c = channelW(x, z);
+  if (c <= 0) return h;
+  return h + (Math.min(h, bedAt(streamNear(x, z).s)) - h) * c;
 }
 export const WATER_Y = height(PUDDLE.x + PUDDLE.r * 1.05, PUDDLE.z) - 0.06;
 

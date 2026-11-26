@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { fbm, vnoise, sstep, hash } from '../core/noise.js';
 import { C, toon, tm } from '../render/materials.js';
 import { HALF, PUDDLE, WATER_Y, height, gapW, pathW, puddleD, rootedW, nearKind, habitatW, habitatAt, channelW, charcoalW, spoilW, pitW,
-  outcropW, wallX, STREAM, SPRING, BACKWATER } from './plot.js';
+  outcropW, wallX, SPRING, BACKWATER, STREAM_LEN, streamAt, streamNear, waterAt } from './plot.js';
 
 const PAL = {
   grass: [C('#5f7d2c'), C('#7f9636'), C('#9aa543')],
@@ -120,26 +120,21 @@ export function buildGround({ scene, rng, debug }) {
 // The stream as a ribbon of water following the channel, plus the spring pool and the backwater.
 // The surface never rises downstream, so a bump in the bed reads as a riffle instead of water flowing uphill.
 function buildWater(scene, { rnd, rr }) {
-  const waterM = new THREE.MeshBasicMaterial({ color: C('#3f6a78') });
+  const waterM = new THREE.MeshBasicMaterial({ color: C('#3f6a78') }), poolM = new THREE.MeshBasicMaterial({ color: C('#2f5260') });
   const pts = [];
-  for (let i = 0; i < STREAM.length - 1; i++) {
-    const [x0, z0] = STREAM[i], [x1, z1] = STREAM[i + 1], len = Math.hypot(x1 - x0, z1 - z0);
-    for (let d = 0; d < len; d += 0.2) {
-      const x = x0 + (x1 - x0) * d / len, z = z0 + (z1 - z0) * d / len;
-      if (Math.abs(x) > HALF - 0.02 || Math.abs(z) > HALF - 0.02) continue;
-      pts.push({ x, z, nx: -(z1 - z0) / len, nz: (x1 - x0) / len });
-    }
+  for (let s = 0; s < STREAM_LEN; s += 0.2) {
+    const [x, z] = streamAt(s), [x2, z2] = streamAt(Math.min(STREAM_LEN, s + 0.2)), l = Math.hypot(x2 - x, z2 - z) || 1;
+    if (Math.abs(x) > HALF - 0.02 || Math.abs(z) > HALF - 0.02) continue;
+    const wob = 1 + (vnoise(s * 0.6, 7) - 0.5) * 0.4;   // width varies along the stream
+    pts.push({ x, z, y: waterAt(s), nx: -(z2 - z) / l * wob, nz: (x2 - x) / l * wob });
   }
-  let level = Infinity;
-  for (const p of pts) { level = Math.min(level, height(p.x, p.z) + 0.12); p.y = level; }
   const P = [], I = [], W = 0.5;
   pts.forEach((p, i) => { P.push(p.x + p.nx * W, p.y, p.z + p.nz * W, p.x - p.nx * W, p.y, p.z - p.nz * W); if (i) { const a = (i - 1) * 2; I.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } });
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setIndex(I);
   scene.add(new THREE.Mesh(g, waterM));
-  const levelAt = (x, z) => pts.reduce((b, p) => (Math.hypot(p.x - x, p.z - z) < b.d ? { d: Math.hypot(p.x - x, p.z - z), y: p.y } : b), { d: Infinity, y: 0 }).y;
-  for (const pool of [SPRING, BACKWATER]) {
-    const m = new THREE.Mesh(new THREE.CircleGeometry(pool.r * 1.15, 20), waterM); m.rotation.x = -Math.PI / 2;
-    m.position.set(pool.x, levelAt(pool.x, pool.z) + 0.005, pool.z); scene.add(m);
+  for (const pool of [SPRING, BACKWATER]) {   // still pools, darker than the running water
+    const m = new THREE.Mesh(new THREE.CircleGeometry(pool.r * 1.15, 20), poolM); m.rotation.x = -Math.PI / 2;
+    m.position.set(pool.x, waterAt(streamNear(pool.x, pool.z).s) + 0.005, pool.z); scene.add(m);
   }
   // glints where the water catches the sky; pale riffles over the shallows
   const glint = new THREE.MeshBasicMaterial({ color: C('#a9d4dc') }), foam = new THREE.MeshBasicMaterial({ color: C('#d9ece8') });

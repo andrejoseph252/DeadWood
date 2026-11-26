@@ -31,9 +31,8 @@ export function buildResearchKit({ scene }) {
   const tagG = new THREE.BoxGeometry(0.12, 0.12, 0.02);
   for (const t of TREES) { if (!t.tag || t.h < 3) continue; const tag = new THREE.Mesh(tagG, tagM); tag.position.set(t.x, height(t.x, t.z) + 1.3, t.z + trunkR(t) + 0.02); scene.add(tag); }
 
-  // camera trap on the trunk nearest the sett, aimed at the entrances (world.md section 2)
-  const [sx, sz] = SETT.entrances[2], aimZ = sz + 1.2;
-  const host = TREES.filter((t) => t.r && t.kind !== 'snag').reduce((b, t) => (Math.hypot(t.x - sx, t.z - aimZ) < Math.hypot(b.x - sx, b.z - aimZ) ? t : b));
-  const a = Math.atan2(sz - host.z, sx - host.x), hr = trunkR(host) + 0.06;
-  const cam = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.3, 0.22), tm('#3b4a2a')); cam.position.set(host.x + Math.cos(a) * hr, height(host.x, host.z) + 1.0, host.z + Math.sin(a) * hr); cam.rotation.y = -a; cam.castShadow = true; scene.add(cam);
+  // camera trap on a stake by the badger path, aimed back along it at the sett entrances (world.md section 2)
+  const cx = 10.2, cz = -11.0, [ax, az] = SETT.entrances[3], a = Math.atan2(az - cz, ax - cx), gy = height(cx, cz);
+  const stake = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.9, 0.06).translate(0, 0.45, 0), wood); stake.position.set(cx, gy, cz); stake.castShadow = true; scene.add(stake);
+  const cam = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.28, 0.16), tm('#3b4a2a')); cam.position.set(cx + Math.cos(a) * 0.1, gy + 0.75, cz + Math.sin(a) * 0.1); cam.rotation.y = -a; cam.castShadow = true; scene.add(cam);
 }
