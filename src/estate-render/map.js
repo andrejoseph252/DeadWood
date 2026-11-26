@@ -5,58 +5,156 @@
 import E from '../data/estate.json' with { type: 'json' };
 import { generateEstate, coverAt, height, COVERS, compOf, compName } from '../estate/index.js';
 import { BESPOKE } from '../estate/tile-plan.js';
+import { BROOKS, pondW } from '../estate/terrain.js';
 
-const INK = { ancient: '#6f8f4e', mixedSouth: '#7f9a5a', spruce1962: '#4a6a58', spruce1985: '#587a62', calamity: '#c2b27a', snags: '#b4aa92', ravine: '#6a9478', coppice: '#94a85a', crag: '#b8ae98', alderCarr: '#6a9488', pond: '#6a98b0', meadow: '#c8d08a', orchard: '#a8bc72', farmstead: '#d2bc92', quarry: '#cabfa4', plot01: '#e07a3a' };
-const PAPER = '#efe7d2', H = E.size / 2, N = 250, CELL = E.size / N;
-const PLACES = [['Crags', -330, -400], ['Ravine', -228, -250], ['Oak coppice', -356, 118], ['Calamity clearing', 318, -292], ['Old orchard', -305, 300], ['Alder carr', 175, 205], ['Spruce plantations', 160, -110], ['Ancient wood', -140, -110]];
+// Map palette: soft natural tints (a hand-coloured survey map), laid over warm paper
+const INK = { ancient: '#7c9a5c', mixedSouth: '#8aa266', spruce1962: '#4f6e5c', spruce1985: '#5c7b66', calamity: '#cdbd86', snags: '#bdb39b', ravine: '#6f9a80', coppice: '#9cb066', crag: '#c4b9a2', alderCarr: '#7aa294', pond: '#7fb0c8', meadow: '#d3d892', orchard: '#b8c87e', farmstead: '#dcc79c', quarry: '#d2c6ab', plot01: '#8aa266' };
+const CROWN = { spruce: '#2f4a3c', pine: '#3e5a3a', beech: '#4a6a34', oak: '#55703a', holly: '#2c4426', hornbeam: '#5a7a3a', sycamore: '#4e7034', ash: '#62803e', lime: '#557636', alder: '#3e5e42', birch: '#8a9a62', rowan: '#6a8a3e', goatWillow: '#7a8a52', apple: '#6e8e3e', pear: '#62803a' };
+const PAPER = '#efe6cf', INKLINE = '#4a3f30', H = E.size / 2, N = 250, CELL = E.size / N;
+const SERIF = 'ui-serif, "New York", Georgia, "Iowan Old Style", serif', SANS = '-apple-system, "SF Pro Text", Inter, system-ui, sans-serif';
+const PLACES = [['Crags', -330, -410, 1], ['Ravine', -214, -250, 1], ['Oak coppice', -356, 118, 1], ['Calamity clearing', 318, -292, 1.1], ['Old orchard', -305, 288, 1], ['Alder carr', 175, 212, 0.9], ['Spruce plantations', 170, -110, 1.1], ['Ancient wood', -140, -110, 1.2], ['Hay meadows', -170, 420, 1]];
 const FLAGS = [['Plot 01', ...E.plot.origin], ['Field station', ...E.units.farmstead.buildings], ['Beaver pond', ...E.pond.centre], ['Old quarry', ...E.units.quarry.centre]];
 
-// draw the static map into a canvas of size px (square); returns the canvas
+// grids shared by the minimap and the full map (computed once): heights, cover colours, pond and wet masks
+let GRID = null;
+function grids() {
+  if (GRID) return GRID;
+  const hs = new Float32Array((N + 1) * (N + 1)), col = new Float32Array(N * N * 3), pond = new Float32Array((N + 1) * (N + 1));
+  const rgb = (c) => [1, 3, 5].map((k) => parseInt(c.slice(k, k + 2), 16));
+  for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) { const x = -H + i * CELL, z = -H + j * CELL; hs[j * (N + 1) + i] = height(x, z); pond[j * (N + 1) + i] = pondW(x, z); }
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const c = rgb(INK[coverAt(-H + (i + 0.5) * CELL, -H + (j + 0.5) * CELL)] || '#999999'); col.set(c, (j * N + i) * 3); }
+  GRID = { hs, col, pond };
+  return GRID;
+}
+
+// marching squares: line segments where a grid field crosses `level`; returns polylines (joined, then smoothed)
+function isolines(field, n, level) {
+  const segs = [], at = (i, j) => field[j * (n + 1) + i], lerp = (a, b) => (level - a) / (b - a);
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+    const a = at(i, j), b = at(i + 1, j), c = at(i + 1, j + 1), d = at(i, j + 1), k = (a > level) | ((b > level) << 1) | ((c > level) << 2) | ((d > level) << 3);
+    if (k === 0 || k === 15) continue;
+    const e = { t: [i + lerp(a, b), j], r: [i + 1, j + lerp(b, c)], b: [i + lerp(d, c), j + 1], l: [i, j + lerp(a, d)] };
+    const T = { 1: ['l', 't'], 2: ['t', 'r'], 3: ['l', 'r'], 4: ['r', 'b'], 5: ['l', 't', 'r', 'b'], 6: ['t', 'b'], 7: ['l', 'b'], 8: ['b', 'l'], 9: ['b', 't'], 10: ['t', 'r', 'b', 'l'], 11: ['b', 'r'], 12: ['r', 'l'], 13: ['r', 't'], 14: ['t', 'l'] }[k];
+    for (let q = 0; q < T.length; q += 2) segs.push([e[T[q]], e[T[q + 1]]]);
+  }
+  // join segments into polylines by matching endpoints
+  const key = (p) => `${p[0].toFixed(3)},${p[1].toFixed(3)}`, ends = new Map();
+  segs.forEach((sg, k) => { for (const p of sg) { const kk = key(p); if (!ends.has(kk)) ends.set(kk, []); ends.get(kk).push(k); } });
+  const used = new Uint8Array(segs.length), lines = [];
+  for (let k = 0; k < segs.length; k++) {
+    if (used[k]) continue; used[k] = 1; const line = [segs[k][0], segs[k][1]];
+    for (const dir of [1, 0]) for (;;) {
+      const tip = dir ? line[line.length - 1] : line[0], next = (ends.get(key(tip)) || []).find((q) => !used[q]); if (next == null) break;
+      used[next] = 1; const sg = segs[next], p = key(sg[0]) === key(tip) ? sg[1] : sg[0]; if (dir) line.push(p); else line.unshift(p);
+    }
+    lines.push(line);
+  }
+  return lines;
+}
+// a smooth path through points (midpoint quadratic curves): no corners
+function smoothPath(g, pts, f, closed = false) {
+  if (pts.length < 2) return;
+  const P = pts.map(f); g.moveTo(...(closed ? mid(P[P.length - 1], P[0]) : P[0]));
+  for (let k = closed ? 0 : 1; k < P.length - (closed ? 0 : 1); k++) { const a = P[k], b = P[(k + 1) % P.length]; g.quadraticCurveTo(a[0], a[1], ...mid(a, b)); }
+  if (!closed) g.lineTo(...P[P.length - 1]); else g.closePath();
+}
+const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+
+// draw the map into a canvas of size px (square); returns the canvas
 function drawMap(px, { labels = true } = {}) {
   const cv = document.createElement('canvas'); cv.width = cv.height = px;
-  const g = cv.getContext('2d'), S = px / E.size, X = (x) => (x + H) * S, Z = (z) => (z + H) * S;
-  const est = generateEstate();
-  // cover and hillshade on a 4 m grid, scaled up crisply
-  const grid = document.createElement('canvas'); grid.width = grid.height = N;
-  const gg = grid.getContext('2d'), img = gg.createImageData(N, N), hs = new Float32Array((N + 1) * (N + 1));
-  for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) hs[j * (N + 1) + i] = height(-H + i * CELL, -H + j * CELL);
-  const hAt = (i, j) => hs[Math.min(N, j) * (N + 1) + Math.min(N, i)], rgb = (c) => [1, 3, 5].map((k) => parseInt(c.slice(k, k + 2), 16)), paper = rgb(PAPER);
+  const g = cv.getContext('2d'), S = px / E.size, X = (x) => (x + H) * S, Z = (z) => (z + H) * S, est = generateEstate(), G = grids();
+  const u = px / 1000;   // line weights and type scale with the map size
+  // 1. paper with a faint grain
+  g.fillStyle = PAPER; g.fillRect(0, 0, px, px);
+  // 2. land cover, hill-shaded, upscaled smoothly and softened so stand edges blend like watercolour
+  const tint = document.createElement('canvas'); tint.width = tint.height = N;
+  const tg = tint.getContext('2d'), img = tg.createImageData(N, N), hAt = (i, j) => G.hs[Math.min(N, j) * (N + 1) + Math.min(N, i)];
   for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
-    const c = rgb(INK[coverAt(-H + (i + 0.5) * CELL, -H + (j + 0.5) * CELL)] || '#999999');
-    const shade = Math.max(0.78, Math.min(1.12, 1 + (-(hAt(i + 1, j) - hAt(i, j)) - (hAt(i, j + 1) - hAt(i, j))) * 0.12));
-    const contour = Math.floor(hAt(i, j) / 5) !== Math.floor(hAt(i + 1, j) / 5) || Math.floor(hAt(i, j) / 5) !== Math.floor(hAt(i, j + 1) / 5);
-    const major = contour && (Math.floor(hAt(i, j) / 25) !== Math.floor(hAt(i + 1, j) / 25) || Math.floor(hAt(i, j) / 25) !== Math.floor(hAt(i, j + 1) / 25));
-    const k = (j * N + i) * 4;
-    for (let q = 0; q < 3; q++) { let v = (c[q] * 0.7 + paper[q] * 0.3) * shade; if (contour) v *= major ? 0.72 : 0.86; img.data[k + q] = v; }
-    img.data[k + 3] = 255;
+    const k = (j * N + i) * 3, dx = hAt(i + 1, j) - hAt(Math.max(0, i - 1), j), dz = hAt(i, j + 1) - hAt(i, Math.max(0, j - 1));
+    const shade = Math.max(0.74, Math.min(1.16, 1 + (-dx - dz) * 0.09)), q = (j * N + i) * 4;   // light from the north-west
+    for (let c = 0; c < 3; c++) img.data[q + c] = (G.col[k + c] * 0.82 + 239 * 0.18) * shade;
+    img.data[q + 3] = 255;
   }
-  gg.putImageData(img, 0, 0);
-  g.imageSmoothingEnabled = false; g.drawImage(grid, 0, 0, px, px);
-  // roads, brooks, pond
-  g.lineCap = g.lineJoin = 'round';
-  const line = (pts) => { g.beginPath(); pts.forEach(([x, z], k) => (k ? g.lineTo(X(x), Z(z)) : g.moveTo(X(x), Z(z)))); g.stroke(); };
-  for (const r of Object.values(E.roads).filter(Array.isArray)) { g.strokeStyle = '#7a6a4a'; g.lineWidth = Math.max(2, 5 * S); line(r); g.strokeStyle = '#f2e8cc'; g.lineWidth = Math.max(1, 3 * S); line(r); }
-  for (const b of Object.values(E.brooks).filter((b) => b.points)) { g.strokeStyle = '#3a6a8a'; g.lineWidth = Math.max(1.2, b.halfWidth * 2.2 * S); line(b.points); }
-  { const p = E.pond; g.save(); g.translate(X(p.centre[0]), Z(p.centre[1])); g.rotate(p.yaw); g.fillStyle = '#7aa6be'; g.strokeStyle = '#3a6a8a'; g.lineWidth = 1; g.beginPath(); g.ellipse(0, 0, p.rx * S, p.rz * S, 0, 0, 7); g.fill(); g.stroke(); g.restore(); }
-  // charcoal platforms
-  g.fillStyle = '#2a241c'; for (const [x, z] of est.charcoal) { g.beginPath(); g.arc(X(x), Z(z), Math.max(1.5, 4 * S), 0, 7); g.fill(); }
-  // compartment grid
-  g.strokeStyle = 'rgba(60,45,30,0.55)'; g.lineWidth = 1; g.setLineDash([4, 3]);
-  for (let k = 0; k <= 8; k++) { const v = k * E.compartment * S; g.beginPath(); g.moveTo(v, 0); g.lineTo(v, px); g.moveTo(0, v); g.lineTo(px, v); g.stroke(); }
-  g.setLineDash([]);
+  tg.putImageData(img, 0, 0);
+  g.save(); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.filter = `blur(${Math.max(1, 2.2 * u)}px)`; g.drawImage(tint, -4 * u, -4 * u, px + 8 * u, px + 8 * u); g.restore();
+  // 3. tree crowns as soft stipple: the texture of the forest itself, from the estate's tree records
+  if (px >= 600) {
+    g.save();
+    for (const t of est.trees) {
+      if (t.status === 'snag') { g.fillStyle = 'rgba(235,228,210,0.85)'; g.fillRect(X(t.x) - 0.6 * u, Z(t.z) - 0.6 * u, 1.2 * u, 1.2 * u); continue; }
+      const r = Math.max(0.7, Math.min(3.4, (t.kind === 'spruce' || t.kind === 'pine' ? 0.6 + t.dbh * 0.03 : 1 + t.dbh * 0.05))) * S * 0.9;
+      g.globalAlpha = 0.34; g.fillStyle = CROWN[t.kind] || '#4a6a34'; g.beginPath(); g.arc(X(t.x), Z(t.z), r, 0, 6.283); g.fill();
+    }
+    g.restore();
+  } else {   // minimap: a light grain instead of 38k crowns
+    g.save(); g.globalAlpha = 0.18; for (let k = 0; k < 2600; k++) { const t = est.trees[(k * 7919) % est.trees.length]; g.fillStyle = CROWN[t.kind] || '#4a6a34'; g.fillRect(X(t.x), Z(t.z), 1.2, 1.2); } g.restore();
+  }
+  // 4. contours: smooth lines every 5 m, a firmer line every 25 m
+  g.save(); g.lineJoin = g.lineCap = 'round';
+  let lo = Infinity, hi = -Infinity; for (const v of G.hs) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  for (let lv = Math.ceil(lo / 5) * 5; lv < hi; lv += 5) {
+    const major = lv % 25 === 0; g.strokeStyle = major ? 'rgba(92,66,40,0.42)' : 'rgba(92,66,40,0.2)'; g.lineWidth = (major ? 1.1 : 0.6) * u * (px < 600 ? 1.2 : 1);
+    for (const line of isolines(G.hs, N, lv)) { if (line.length < 4) continue; g.beginPath(); smoothPath(g, line, ([i, j]) => [i * CELL * S, j * CELL * S]); g.stroke(); }
+  }
+  g.restore();
+  // 5. water: the pond's real shoreline (traced from the terrain), brooks as smooth tapering curves
+  g.save(); g.lineJoin = g.lineCap = 'round';
+  for (const line of isolines(G.pond, N, 0.5)) { if (line.length < 6) continue; const f = ([i, j]) => [i * CELL * S, j * CELL * S];
+    g.beginPath(); smoothPath(g, line, f, true); g.fillStyle = '#86b6cc'; g.fill(); g.strokeStyle = 'rgba(52,96,124,0.7)'; g.lineWidth = 1.2 * u; g.stroke();
+    g.beginPath(); smoothPath(g, line, f, true); g.save(); g.clip(); g.strokeStyle = 'rgba(255,255,255,0.35)'; g.lineWidth = 3 * u; g.stroke(); g.restore(); }
+  for (const b of Object.values(BROOKS)) {
+    const n = Math.max(2, Math.round(b.line.length / 6)), pts = Array.from({ length: n + 1 }, (_, k) => b.line.at((k / n) * b.line.length));
+    for (const [w, c] of [[b.halfWidth * 2.6 + 2.2, 'rgba(255,250,236,0.55)'], [b.halfWidth * 2.2 + 0.6, '#4e88a8']]) {
+      g.strokeStyle = c; g.lineWidth = Math.max(1, w * S * (px < 600 ? 1.6 : 1)); g.beginPath(); smoothPath(g, pts, ([x, z]) => [X(x), Z(z)]); g.stroke();
+    }
+  }
+  g.restore();
+  // 6. roads: a soft cased line, curving smoothly
+  g.save(); g.lineJoin = g.lineCap = 'round';
+  for (const r of Object.values(E.roads).filter(Array.isArray)) for (const [w, c] of [[5.6, 'rgba(110,88,58,0.75)'], [3.6, '#f6eed8']]) { g.strokeStyle = c; g.lineWidth = Math.max(1, w * S * (px < 600 ? 1.5 : 1)); g.beginPath(); smoothPath(g, r, ([x, z]) => [X(x), Z(z)]); g.stroke(); }
+  g.restore();
+  // 7. charcoal platforms: small dark rings, as on a survey sheet
+  g.save(); g.strokeStyle = 'rgba(40,32,24,0.75)'; g.fillStyle = 'rgba(40,32,24,0.35)'; g.lineWidth = 1 * u;
+  for (const [x, z] of est.charcoal) { g.beginPath(); g.arc(X(x), Z(z), Math.max(1.4, 4.5 * S), 0, 6.283); g.fill(); g.stroke(); }
+  g.restore();
+  // 8. compartment grid: faint dotted lines; labels in small caps
+  g.save(); g.strokeStyle = 'rgba(74,63,48,0.28)'; g.lineWidth = 0.8 * u; g.setLineDash([1.5 * u, 4 * u]); g.lineCap = 'round';
+  for (let k = 1; k < 8; k++) { const v = k * E.compartment * S; g.beginPath(); g.moveTo(v, 0); g.lineTo(v, px); g.moveTo(0, v); g.lineTo(px, v); g.stroke(); }
+  g.restore();
+  const halo = (text, x, y, font, fill, w = 3) => { g.font = font; g.lineJoin = 'round'; g.strokeStyle = 'rgba(244,238,220,0.85)'; g.lineWidth = w * u; g.strokeText(text, x, y); g.fillStyle = fill; g.fillText(text, x, y); };
   if (labels) {
-    g.fillStyle = 'rgba(50,38,26,0.8)'; g.font = `${Math.round(px / 70)}px -apple-system, "SF Pro Text", Inter, system-ui, sans-serif`;
-    for (const c of est.compartments) g.fillText(c.id, X(c.x - E.compartment / 2) + 4, Z(c.z - E.compartment / 2) + px / 60);
-    g.font = `italic ${Math.round(px / 62)}px -apple-system, "SF Pro Text", Inter, system-ui, sans-serif`; g.fillStyle = 'rgba(40,30,20,0.85)'; g.textAlign = 'center';
-    for (const [name, x, z] of PLACES) g.fillText(name, X(x), Z(z));
+    g.textBaseline = 'top'; for (const c of est.compartments) halo(c.id, X(c.x - E.compartment / 2) + 6 * u, Z(c.z - E.compartment / 2) + 6 * u, `600 ${Math.round(11 * u)}px ${SANS}`, 'rgba(74,63,48,0.62)', 2.4);
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    for (const [name, x, z, k] of PLACES) halo(name, X(x), Z(z), `italic ${Math.round(17 * k * u)}px ${SERIF}`, 'rgba(56,44,30,0.88)', 4);
     g.textAlign = 'left';
   }
-  // places still waiting for their hand-made templates: an orange flag
+  // 9. places still to be hand-made: a small pennant
   for (const [name, x, z] of FLAGS) {
-    g.strokeStyle = '#3a2a1a'; g.lineWidth = Math.max(1, px / 500); g.beginPath(); g.moveTo(X(x), Z(z)); g.lineTo(X(x), Z(z) - px / 45); g.stroke();
-    g.fillStyle = '#ff6a1a'; g.beginPath(); g.moveTo(X(x), Z(z) - px / 45); g.lineTo(X(x) + px / 70, Z(z) - px / 55); g.lineTo(X(x), Z(z) - px / 70); g.fill();
-    if (labels) { g.fillStyle = '#7a3a10'; g.font = `bold ${Math.round(px / 66)}px -apple-system, "SF Pro Text", Inter, system-ui, sans-serif`; g.fillText(name, X(x) + px / 60, Z(z) - px / 70); }
+    const fx = X(x), fz = Z(z), h = 16 * u * (px < 600 ? 1.6 : 1);
+    g.strokeStyle = INKLINE; g.lineWidth = 1.3 * u; g.beginPath(); g.moveTo(fx, fz); g.lineTo(fx, fz - h); g.stroke();
+    g.fillStyle = '#e8743c'; g.beginPath(); g.moveTo(fx, fz - h); g.quadraticCurveTo(fx + h * 0.5, fz - h * 0.85, fx + h * 0.62, fz - h * 0.7); g.quadraticCurveTo(fx + h * 0.4, fz - h * 0.62, fx, fz - h * 0.52); g.fill();
+    g.fillStyle = INKLINE; g.beginPath(); g.arc(fx, fz, 1.8 * u, 0, 6.283); g.fill();
+    if (labels) { g.textBaseline = 'middle'; halo(name, fx + h * 0.75, fz - h * 0.72, `600 ${Math.round(13 * u)}px ${SANS}`, '#8a3e14', 3.4); }
   }
+  // 10. compass and scale bar (full map only); a soft vignette
+  if (labels) {
+    const cx = px - 56 * u, cy = px - 60 * u, r = 26 * u;   // bottom right, clear of the close button
+    g.save(); g.translate(cx, cy); g.fillStyle = 'rgba(244,238,220,0.82)'; g.beginPath(); g.arc(0, 0, r + 8 * u, 0, 6.283); g.fill();
+    g.strokeStyle = 'rgba(74,63,48,0.45)'; g.lineWidth = u; g.beginPath(); g.arc(0, 0, r, 0, 6.283); g.stroke();
+    g.fillStyle = INKLINE; g.beginPath(); g.moveTo(0, -r + 3 * u); g.lineTo(6 * u, 4 * u); g.lineTo(0, 0); g.lineTo(-6 * u, 4 * u); g.closePath(); g.fill();
+    g.fillStyle = 'rgba(74,63,48,0.35)'; g.beginPath(); g.moveTo(0, r - 3 * u); g.lineTo(6 * u, -4 * u); g.lineTo(0, 0); g.lineTo(-6 * u, -4 * u); g.closePath(); g.fill();
+    g.font = `700 ${Math.round(11 * u)}px ${SANS}`; g.textAlign = 'center'; g.fillStyle = INKLINE; g.fillText('N', 0, -r - 1 * u); g.restore();
+    const bx = 30 * u, by = px - 34 * u, len = 200 * S;
+    g.save(); g.fillStyle = 'rgba(244,238,220,0.82)'; g.beginPath(); g.roundRect(bx - 12 * u, by - 22 * u, len + 24 * u, 38 * u, 10 * u); g.fill();
+    for (let k = 0; k < 4; k++) { g.fillStyle = k % 2 ? 'rgba(74,63,48,0.85)' : 'rgba(244,238,220,1)'; g.fillRect(bx + (k * len) / 4, by, len / 4, 5 * u); }
+    g.strokeStyle = 'rgba(74,63,48,0.85)'; g.lineWidth = u; g.strokeRect(bx, by, len, 5 * u);
+    g.font = `500 ${Math.round(10.5 * u)}px ${SANS}`; g.fillStyle = INKLINE; g.textAlign = 'center'; g.textBaseline = 'bottom';
+    for (const [m, v] of [[0, '0'], [100, '100'], [200, '200 m']]) g.fillText(v, bx + m * S, by - 4 * u);
+    g.restore();
+  }
+  const vg = g.createRadialGradient(px / 2, px / 2, px * 0.38, px / 2, px / 2, px * 0.75); vg.addColorStop(0, 'rgba(60,44,24,0)'); vg.addColorStop(1, 'rgba(60,44,24,0.16)');
+  g.fillStyle = vg; g.fillRect(0, 0, px, px);
   return cv;
 }
 
@@ -92,11 +190,12 @@ export function createEstateMap({ view, onJump }) {
   sheet.append(closeBtn);
   document.body.append(mini, full);
   const miniOver = document.createElement('canvas'), fullOver = document.createElement('canvas');
-  miniOver.width = miniOver.height = 400; fullOver.width = fullOver.height = 1000;
+  miniOver.width = miniOver.height = 400; fullOver.width = fullOver.height = 1600;
   let ready = false;
 
-  // draw the maps once the 3D is up (they take a moment to compute)
-  setTimeout(() => { mini.prepend(drawMap(400, { labels: false })); mini.insertBefore(miniOver, mini.querySelector('.north')); sheet.prepend(drawMap(1000)); sheet.append(fullOver); ready = true; }, 50);
+  // draw the maps once the 3D is up (they take a moment to compute); the minimap first, the full map a moment later
+  setTimeout(() => { mini.prepend(drawMap(400, { labels: false })); mini.insertBefore(miniOver, mini.querySelector('.north')); ready = true;
+    setTimeout(() => { sheet.prepend(drawMap(1600)); sheet.append(fullOver); }, 400); }, 50);
 
   const toWorld = (el, e) => { const r = el.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * E.size - H, (e.clientY - r.top) / r.height * E.size - H]; };
   mini.addEventListener('click', (e) => onJump(...toWorld(mini, e)));
@@ -117,15 +216,22 @@ export function createEstateMap({ view, onJump }) {
   }
 
   // the camera marker: a dot, the facing, and the ground footprint of the view
+  // where you are: a soft view cone in the direction the camera looks, the view's footprint as a rounded glow, a dot
   function drawMarker(cv) {
-    const g = cv.getContext('2d'), s = cv.width / E.size, v = view(); g.clearRect(0, 0, cv.width, cv.height);
-    const X = (v.x + H) * s, Z = (v.z + H) * s;
-    g.save(); g.translate(X, Z); g.rotate(Math.atan2(v.dx, -v.dz));   // the footprint's far edge points the way the camera looks
-    g.strokeStyle = '#ff6a1a'; g.lineWidth = Math.max(2, cv.width / 250); g.strokeRect(-v.w / 2 * s, -v.d / 2 * s, v.w * s, v.d * s);
-    g.fillStyle = '#ff6a1a'; g.beginPath(); g.moveTo(0, -v.d / 2 * s - cv.width / 60); g.lineTo(-cv.width / 90, -v.d / 2 * s); g.lineTo(cv.width / 90, -v.d / 2 * s); g.fill();
+    const g = cv.getContext('2d'), s = cv.width / E.size, v = view(), u = cv.width / 1000; g.clearRect(0, 0, cv.width, cv.height);
+    const X = (v.x + H) * s, Z = (v.z + H) * s, w = v.w * s, d = v.d * s;
+    g.save(); g.translate(X, Z); g.rotate(Math.atan2(v.dx, -v.dz));
+    g.fillStyle = 'rgba(255,255,255,0.16)'; g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = 1.6 * u;
+    g.beginPath(); g.roundRect(-w / 2, -d / 2, w, d, Math.min(w, d) * 0.22); g.fill(); g.stroke();
+    const cone = g.createLinearGradient(0, 0, 0, -d / 2 - 14 * u); cone.addColorStop(0, 'rgba(10,132,255,0.5)'); cone.addColorStop(1, 'rgba(10,132,255,0)');
+    g.fillStyle = cone; g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, d / 2 + 14 * u, -Math.PI / 2 - 0.55, -Math.PI / 2 + 0.55); g.closePath(); g.fill();
     g.restore();
+    const r = Math.max(4.5, 7 * u);
+    g.fillStyle = 'rgba(10,132,255,0.22)'; g.beginPath(); g.arc(X, Z, r * 2.1, 0, 6.283); g.fill();
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(X, Z, r + 1.6 * u, 0, 6.283); g.fill();
+    g.fillStyle = '#0a84ff'; g.beginPath(); g.arc(X, Z, r, 0, 6.283); g.fill();
   }
-  function update() { if (!ready) return; drawMarker(miniOver); if (full.classList.contains('open')) drawMarker(fullOver); }
+  function update() { if (!ready) return; drawMarker(miniOver); if (full.classList.contains('open') && fullOver.parentNode) drawMarker(fullOver); }
   function open() { full.classList.add('open'); update(); }
   function close() { full.classList.remove('open'); }
   function toggle() { if (full.classList.contains('open')) close(); else open(); }

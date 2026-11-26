@@ -26,11 +26,15 @@ export const COVERS = {
 export const COVER_IDS = Object.keys(COVERS);
 
 // noise-perturbed ellipse membership: 1 inside, 0 outside
+// organic shape membership (< 1 inside): an ellipse seen through domain warping, so edges form lobes and bays
+// rather than an oval outline (two octaves of warp, then a fine fringe)
+const warp = (x, z, k) => [x + (fbm(x * 0.006 + k, z * 0.006) - 0.5) * 70 + (fbm(x * 0.02 + k * 3, z * 0.02 + 5) - 0.5) * 22, z + (fbm(x * 0.006 + 31 + k, z * 0.006 + 17) - 0.5) * 70 + (fbm(x * 0.02 + 9, z * 0.02 + k * 3) - 0.5) * 22];
 function blob(u, x, z, wobble = 0.22) {
-  const c = Math.cos(u.yaw || 0), s = Math.sin(u.yaw || 0), dx = x - u.centre[0], dz = z - u.centre[1];
-  return Math.hypot((dx * c + dz * s) / u.rx, (-dx * s + dz * c) / u.rz) + (fbm(x * 0.012 + u.centre[0] * 0.01, z * 0.012) - 0.5) * wobble * 2;
+  const [wx, wz] = warp(x, z, u.centre[0] * 0.01), c = Math.cos(u.yaw || 0), s = Math.sin(u.yaw || 0), dx = wx - u.centre[0], dz = wz - u.centre[1];
+  return Math.hypot((dx * c + dz * s) / u.rx, (-dx * s + dz * c) / u.rz) + (fbm(x * 0.05 + u.centre[0] * 0.01, z * 0.05) - 0.5) * wobble;
 }
-export const wallLineX = (z) => E.wallLine.x0 + E.wallLine.amp * Math.sin(z * E.wallLine.freq) * sstep(40, 140, Math.abs(z - 31));   // straight through Plot 01, wandering beyond it
+// the old wall: straight through Plot 01 (where its course is surveyed), wandering like a field boundary beyond it
+export const wallLineX = (z) => E.wallLine.x0 + (E.wallLine.amp * Math.sin(z * E.wallLine.freq) + (fbm(z * 0.006 + 3, 7.7) - 0.5) * 150) * sstep(40, 140, Math.abs(z - 31));
 const U = E.units;
 const gorge = polyline(E.brooks.gorge.points);
 const main = polyline(E.brooks.main.points);
@@ -53,7 +57,7 @@ export function coverAt(x, z) {
   const { d: rd } = ridgeLine.near(x, z), side = ridgeSide(x, z);
   // crags: the cliff band where the ridge's face is steep, and patchy bare rock along the crest
   if (x < -90 && rd < 130 && (slope(x, z) > 0.3 || (side < -12 && rd < 60 && fbm(x * 0.025 + 7, z * 0.025) > 0.52))) return 'crag';
-  if (!gorge.farFrom(x, z, 60) && gorge.near(x, z).d < 42 + (vnoise(x * 0.03, z * 0.03) - 0.5) * 16 && z < 10) return 'ravine';
+  if (!gorge.farFrom(x, z, 70) && gorge.near(x, z).d < 38 + (fbm(x * 0.02 + 4, z * 0.02) - 0.5) * 34 && z < 10) return 'ravine';   // the gorge's forest widens and narrows with the slopes
   if (blob(U.coppice, x, z) < 1) return 'coppice';
   // wet valley floor along the main brook (east of the gorge) and around the pond
   // wet valley floor: ground less than ~2.5 m above the main brook's bed, east of the gorge, and the pond's rim
