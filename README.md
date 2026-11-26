@@ -10,9 +10,12 @@ The current build is the visual prototype: the plot as a 3D scene rendered as cr
 npm install
 npm run dev      # serves public/ at http://localhost:8000 and rebuilds on change
 npm run build    # one-off minified build into public/main.js
+npm test         # headless tests (sim boundary, determinism)
 ```
 
-Then open the printed local address. GitHub Pages can serve the `public/` folder after `npm run build`.
+Then open the printed local address. URL options: `?lite` (fewer grass blades, smaller shadow map), `?pix=N` (screen pixels per art pixel), `?zoom=N`, `?look=x,z`.
+
+Pushing to `main` on GitHub runs the tests, builds, and deploys `public/` to GitHub Pages (`.github/workflows/pages.yml`; set Settings → Pages → Source to "GitHub Actions" once).
 
 ## Controls
 
@@ -22,7 +25,8 @@ Then open the printed local address. GitHub Pages can serve the `public/` folder
 
 ## Where things are
 
-- `src/main.js` — the whole current scene (to be split into modules; see `docs/roadmap.md`, step 0)
+- `src/` — the game, split into `core/`, `world/`, `flora/`, `fauna/`, `render/`, `ui/`, `sim/` and `data/` (module map in `CLAUDE.md`)
+- `test/` — Node tests for the headless parts
 - `public/index.html` — page shell, label and camera toolbar
 - `docs/design.md` — the game design as decided so far
 - `docs/roadmap.md` — the step-by-step build plan

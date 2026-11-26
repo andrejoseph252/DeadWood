@@ -12,7 +12,23 @@ A forest ecology game with an academic feel. The player directs a small field st
 - Visual style: 3D scene rendered at low resolution as pixel art (banded toon light, crisp shadows, depth outlines, nearest-neighbour upscale). Keep silhouettes readable; avoid floating or noisy elements.
 - Animals are rigs built facing −x, with pivot joints (neck, head, ears, tail, legs, wings) for animation.
 - Deterministic randomness (seeded) so a plot can be regenerated identically.
-- After each change: `npm run build`, open the page, check the console for errors.
+- After each change: `npm test`, `npm run build`, open the page, check the console for errors.
+
+## Module map (`src/`)
+- `main.js` — wires everything together and runs the builders **in a fixed order** (see below).
+- `core/` — seeded random (`random.js`) and noise (`noise.js`). Pure.
+- `world/plot.js` — layout and ground fields (`height`, `gapW`, `pathW`, `puddleD`, `canopyShade`…). Pure; the sim may import it.
+- `world/` (other files) — meshes: `ground.js` (terrain, cut sides, puddle), `props.js` (rocks, log, stump, ant mound), `kit.js` (stakes, string, quadrat, tags, camera trap).
+- `flora/` — `trees.js` (trees, saplings, ivy, foliage clumps), `shrubs.js`, `grass.js`, `herbs.js`, `litter.js` (chips, cones, twigs, moss), `fungi.js`.
+- `fauna/` — `parts.js` (ellipsoid / segment / pivot helpers), `rigs.js` (one `makeX()` per animal), `behaviours.js` (motion state machines), `index.js` (placement).
+- `render/` — `pipeline.js` (renderer, low-res target, pixel post pass), `camera.js` (map controls, follow, keyboard), `lights.js`, `materials.js` (toon ramp), `wind.js`, `textures.js`, `instancing.js`.
+- `ui/` — keyboard state, camera toolbar.
+- `sim/` — the headless simulation (empty until roadmap step 1).
+- `data/` — `plot01.json` (hand-placed starting layout), `species.json` (names, render params; growth params with sources from step 1).
+
+**Headless boundary:** `sim/`, `world/plot.js` and `core/` must not import three.js or any package. `test/boundaries.test.js` walks their import graphs and fails if they do.
+
+**Seeded build order:** every builder draws from one shared random stream. Reordering builders in `main.js`, or adding or removing random draws in one, moves everything built after it. That's fine when intended, but a pure refactor should leave the scene identical. To check: before and after, paste `tools/scene-fingerprint.js` into the browser console (hash of every static mesh's geometry, transform, material and instance data, skipping animal rigs) and compare.
 
 ## Gotcha from the prototype phase
 When published as a claude.ai artifact, the page's content-security policy blocks `fetch` of `data:` URIs. Load assets as separate same-origin files. (Not an issue on GitHub Pages, but keep assets as normal files anyway.)

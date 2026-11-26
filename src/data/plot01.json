@@ -1,0 +1,29 @@
+{
+  "_about": "Hand-placed starting layout for Plot 01. Metres, plot centred on (0, 0); x and z are horizontal, y is up. Trees: h = height, r = crown radius. Saplings: h = height. The simulation takes these over as its initial state from roadmap step 1.",
+  "size": 28,
+  "trees": [
+    { "kind": "beech", "x": -9, "z": -8.5, "h": 10.5, "r": 4.6 },
+    { "kind": "beech", "x": 9.5, "z": -9.5, "h": 9.5, "r": 4.2 },
+    { "kind": "oak", "x": -9.5, "z": 8.5, "h": 9, "r": 4.6, "ivy": true },
+    { "kind": "spruce", "x": 11.6, "z": -3.2, "h": 12, "r": 2.7 },
+    { "kind": "spruce", "x": -6.2, "z": -11.6, "h": 11, "r": 2.5 },
+    { "kind": "spruce", "x": -12, "z": -0.5, "h": 11.5, "r": 2.6, "dead": true },
+    { "kind": "birch", "x": -2.5, "z": -11.4, "h": 9, "r": 2.2 },
+    { "kind": "birch", "x": 11.2, "z": 9.6, "h": 8.5, "r": 2.0 },
+    { "kind": "snag", "x": 6.2, "z": -4.8, "h": 7, "r": 0 }
+  ],
+  "saplings": [
+    { "kind": "beech", "x": -2.5, "z": 3.5, "h": 2.4 },
+    { "kind": "birch", "x": 3, "z": 3.2, "h": 3.4 },
+    { "kind": "beech", "x": -4.8, "z": -1.5, "h": 1.7 },
+    { "kind": "spruce", "x": 1.8, "z": -4.2, "h": 2.1 },
+    { "kind": "oak", "x": 6.2, "z": 1.2, "h": 1.3 },
+    { "kind": "beech", "x": -1, "z": 6.5, "h": 1.5 },
+    { "kind": "rowan", "x": -6, "z": 4.5, "h": 2.6 },
+    { "kind": "fir", "x": 4.2, "z": -2, "h": 1.2 },
+    { "kind": "oak", "x": 0.2, "z": -1, "h": 0.6 },
+    { "kind": "beech", "x": -3.4, "z": 0.6, "h": 0.5 }
+  ],
+  "gap": { "x": 0.5, "z": 1, "r": 7.2 },
+  "puddle": { "x": 5.2, "z": 5.0, "r": 1.5 }
+}
