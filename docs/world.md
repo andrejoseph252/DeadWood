@@ -693,3 +693,61 @@ Each step ends with screenshots from a fixed set of viewpoints, and with a check
 ```
 
 The `sim` fields stay empty during the setting build. Real parameters, such as growth curves and shade tolerance from the gap-model literature (JABOWA/ForClim), are filled in when the simulation work starts.
+
+---
+
+## 12. The estate (1 km²)
+
+Plot 01 is the field station's permanent research plot. Around it lies the forest block the station manages: a **1 × 1 km estate (100 ha)**. That is large enough for real populations (a roe deer herd of 10–20, one or two badger setts, a boar sounder passing through), for the full mosaic of forest phases, and for management choices that can differ between stands and be replicated.
+
+### Scale and view
+
+- **The look is set by metres per pixel.** The home view keeps today's overview, where one pixel covers about 15–20 cm and a screen holds about 60–100 m. The world is larger than the screen: you pan across it.
+- **Tiles:** the estate is **16 × 16 tiles of 62.5 m** (256 tiles). The tiles around the camera (3 × 3 to 5 × 5) are built at full detail; others are not built.
+- **Compartments:** **2 × 2 tiles (125 m, about 1.56 ha)**, 64 in all. A compartment is the unit of management: thinning, fencing, planting and culling are planned per compartment.
+- **Patches:** the simulation divides the estate into **32 × 32 patches of 31.25 m** (about 980 m²), close to the patch size of forest gap models such as ForClim, about 833 m². Each patch holds its trees as records.
+- **The land is seamless.** The diorama's cut soil edge appears only at the estate border and around the selected compartment, which lifts slightly as its own block.
+- **The estate map** is a separate view: a field-notebook map of compartments, used for planning and for jumping into 3D anywhere.
+
+### Coordinates
+
+- Estate metres with the origin at the estate centre: x, z ∈ [−500, 500], **+x east, +z south**, +y up.
+- Tile (i, j) spans x ∈ [−500 + 62.5 i, −500 + 62.5 (i + 1)], and likewise for z with j.
+- **Plot 01 sits in tile (8, 8)**, whose centre is (31.25, 31.25). Plot-local coordinates are estate coordinates minus (31.25, 31.25).
+
+### Landscape
+
+The ground rises to a sandstone ridge in the north-west and falls to a brook valley that crosses the estate towards the south-east. Relief is about 90 m, from about 440 m above sea level on the ridge to about 350 m where the brook leaves.
+
+| Unit | Where (approx.) | What it is | Why it is there |
+|---|---|---|---|
+| **Crag ridge** | NW corner, x < −150, z < −250 | Sandstone cliff band along the ridge's south-east face, boulder field below, dry sessile oak and Scots pine on the crest | Hard sandstone beds outcropping; thin acid soil |
+| **Ancient beech–oak wood** | West and centre, roughly x −300…45, z −250…170 | Veteran beech, sessile oak, holly; dozens of charcoal platforms; ancient-woodland flora | Continuously wooded for centuries (section 4) |
+| **The old wall line** | N–S at x ≈ 42 through Plot 01, then along field edges | Collapsed dry-stone walls | The 1800–1955 pasture boundary |
+| **Spruce plantations** | East of the wall line, north of the brook | Rows planted 1962 and 1985; thinning stumps; root rot | Former pasture planted up |
+| **Calamity clearing** | NE, x 180…460, z −420…−160 | Several hectares where a 1962 plantation died in the 2019–22 bark-beetle years: salvage-logged ground, log piles at the road, birch and rowan regrowth, one block of grey snags left standing | The real Central European spruce dieback |
+| **Brook valley** | W edge → SE corner | The main brook with gravel bars and alder; side brooks from springs, one of them Plot 01's stream | Spring line where sandstone meets shale |
+| **Beaver pond** | Flat valley stretch, about (250, 250) | Dam, open water, drowned standing trees, a wet meadow below | Eurasian beaver (*Castor fiber*), returning to these hills |
+| **Alder carr** | Wet valley floor, either side of the pond | Black alder on tussocks, standing water in spring | Waterlogged soil |
+| **Ravine forest** | Side gorge, x ≈ −250, from the ridge down to the brook | Steep, rocky, shaded: sycamore, ash, small-leaved lime, hart's-tongue fern | Cool, moist, unstable slopes |
+| **Oak coppice-with-standards** | Warm south-facing slope below the ridge, about x −460…−250, z 40…200 | Hornbeam and oak coppice under scattered big oaks | Former firewood coppice; warm, dry |
+| **Farmstead clearing** | SW, about x −380…−90, z 250…470 | The field station's buildings, hay meadows, an old orchard (apple, pear), hedges and old field walls | The last farm, given up in the 1950s; the station took it over |
+| **Old quarry** | East, about (360, −40) | Abandoned sandstone quarry: rock faces, spoil, a pond | Building stone, until 1930 |
+| **Roads and trails** | Network | A gravel forest road along the valley and up to the plantations; skid trails; a hunting high seat; boundary stones | Management access |
+
+### Species the estate adds
+
+These are in the roster for the estate only. Build them when their unit is built in 3D:
+- **Trees:** hornbeam (*Carpinus betulus*), small-leaved lime (*Tilia cordata*), Scots pine (*Pinus sylvestris*), goat willow (*Salix caprea*), and orchard apple and pear (*Malus domestica*, *Pyrus communis*).
+- **Other plants:** hart's-tongue fern (*Asplenium scolopendrium*).
+- **Animals:** Eurasian beaver (*Castor fiber*).
+
+Sycamore (6.1) is common here.
+
+### Build steps (E1–E5)
+
+1. **E1 — The estate in data.** A seeded, headless generator: terrain, brooks, the landscape units, the land-use history, compartments, patches and initial tree records. Tests, plus a rendered map image for review.
+2. **E2 — The estate map view.** Compartments, stand types and history, with a click to jump into 3D.
+3. **E3 — Streaming 3D.** Tiles built around the camera from the estate data; full detail near, impostor trees further out; animals as populations, spawned as rigs near the camera.
+4. **E4 — Plot 01 as the anchor tile.** The hand-authored plot drops into tile (8, 8) and blends with its neighbours.
+5. **E5 — Visibility.** Zoom-based dithered canopy fade, a cursor cutaway, and crown outlines on the ground.
