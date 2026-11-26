@@ -14,6 +14,7 @@ import { Y0 } from './estate-render/tile-build.js';
 import { BESPOKE } from './estate/tile-plan.js';
 import { generateEstate, coverAt, height, COVERS, compOf, compName } from './estate/index.js';
 import { createEstateMap } from './estate-render/map.js';
+import { createHud } from './ui/hud.js';
 import { buildPlotSteps } from './world/build-plot.js';
 import { createEstateFauna, LABEL } from './estate-render/fauna.js';
 import { PLOT } from './estate/terrain.js';
@@ -49,29 +50,33 @@ const [sx, sz] = (params.get('at') || '-40,20').split(',').map(Number);
 goto(sx, sz);
 // no waiting: the page shows at once and tiles stream in, nearest first, from the worker pool
 
-// ---------- toolbar and the label ----------
-const tag = document.querySelector('.tag'), label = { b: tag.querySelector('b'), span: tag.querySelector('span') };
-let lastKey = '';
+// ---------- the interface (src/ui/hud.js): place card, dock, menus ----------
+const hud = createHud();
 function updateLabel() {
-  const t = rig.controls.target, cover = coverAt(t.x, t.z), [ci, cj] = compOf(t.x, t.z), key = `${ci},${cj},${cover}`;
-  if (key === lastKey) return; lastKey = key;
-  label.b.textContent = `Estate · compartment ${compName(ci, cj)} · ${COVERS[cover].name}`;
-  label.span.textContent = BESPOKE[cover] ? `Flagged: ${BESPOKE[cover]} gets its own hand-made tile later` : COVERS[cover].history;
+  const t = rig.controls.target, cover = coverAt(t.x, t.z), [ci, cj] = compOf(t.x, t.z);
+  hud.setPlace({ chip: compName(ci, cj), title: COVERS[cover].name, text: BESPOKE[cover] ? `Flagged: ${BESPOKE[cover]} gets its own hand-made version later.` : COVERS[cover].history.replace(/^./, (c) => c.toUpperCase()) + '.', flagged: !!BESPOKE[cover] });
 }
-document.querySelector('[data-view]')?.addEventListener('click', () => { rig.camera.zoom = HOME; rig.camera.updateProjectionMatrix(); });
-document.querySelectorAll('[data-rot]').forEach((b) => b.addEventListener('click', () => rig.rotateBy(+b.dataset.rot)));
-const canopyBtn = document.querySelector('[data-canopy]');
-canopyBtn?.setAttribute('aria-pressed', String(shared.canopy));
-canopyBtn?.addEventListener('click', () => { const on = canopyBtn.getAttribute('aria-pressed') !== 'true'; canopyBtn.setAttribute('aria-pressed', String(on)); streamer.setCanopy(on); });
-const go = document.querySelector('[data-goto]');
-go?.addEventListener('change', () => { if (!go.value) return; const [x, z] = go.value.split(',').map(Number); goto(x, z); go.value = ''; });
-// ---------- animals across the estate: rigs near the camera, data elsewhere; Follow picks the nearest of a kind ----------
-const fauna = createEstateFauna(scene, { Y0 });
-const follow = document.querySelector('[data-follow]');
-if (follow) {
-  for (const s of fauna.species) follow.append(Object.assign(document.createElement('option'), { value: s, textContent: LABEL[s] }));
-  follow.addEventListener('change', () => { if (!follow.value) return; const t = rig.controls.target, a = fauna.nearest(follow.value, t.x, t.z); if (a) { goto(a.x, a.z, 1.6); rig.follow(a.rig.root); streamer.setCanopy(false); document.querySelector('[data-canopy]')?.setAttribute('aria-pressed', 'false'); } follow.value = ''; });   // crowns off so the animal shows (until the visibility tools, E5)
-}
+const fauna = createEstateFauna(scene, { Y0 });   // animals across the estate: rigs near the camera, data elsewhere
+const ANIMAL_ICON = { deer: 'deer', boar: 'boar', badger: 'badger', fox: 'fox', hare: 'hare', squirrel: 'squirrel', beaver: 'beaver', buzzard: 'buzzard' };
+const ANIMAL_SUB = { deer: 'Capreolus capreolus', boar: 'Sus scrofa', badger: 'Meles meles', fox: 'Vulpes vulpes', hare: 'Lepus europaeus', squirrel: 'Sciurus vulgaris', beaver: 'Castor fiber', buzzard: 'Buteo buteo' };
+const PLACES = [
+  { title: 'Woods', items: [['Ancient beech–oak wood', -40, 20, 'leaf'], ['Plot 01, the research plot', 31, 31, 'plot'], ['Ravine gorge', -246, -200, 'water'], ['Oak coppice', -356, 118, 'leaf'], ['Spruce plantation', 140, -150, 'tree']] },
+  { title: 'Open ground and water', items: [['Calamity clearing', 318, -292, 'tree'], ['Dead spruce reserve', 250, -330, 'tree'], ['Crags', -300, -330, 'rock'], ['Main brook', -120, 110, 'water'], ['Alder carr', 160, 215, 'water'], ['Old orchard', -305, 300, 'leaf']] },
+  { title: 'To be hand-made', items: [['Beaver pond', 238, 246, 'beaver', 'Soon'], ['Old quarry', 362, -40, 'rock', 'Soon'], ['Field station', -196, 330, 'house', 'Soon']] },
+];
+hud.button('map', 'Map', () => map.toggle());
+const followBtn = hud.button('follow', 'Follow an animal', () => {});
+hud.menu(followBtn, [{ title: 'Follow the nearest', items: fauna.species.map((s) => ({ icon: ANIMAL_ICON[s], label: LABEL[s], sub: ANIMAL_SUB[s], value: s })) }], (s) => {
+  const t = rig.controls.target, a = fauna.nearest(s, t.x, t.z);
+  if (a) { goto(a.x, a.z, 1.6); rig.follow(a.rig.root); streamer.setCanopy(false); canopyBtn.setAttribute('aria-pressed', 'false'); }   // crowns off so the animal shows (until the visibility tools, E5)
+});
+const gotoBtn = hud.button('pin', 'Go to a place', () => {});
+hud.menu(gotoBtn, PLACES.map((sec) => ({ title: sec.title, items: sec.items.map(([label, x, z, ic, flag]) => ({ icon: ic, label, flag, value: [x, z] })) })), ([x, z]) => goto(x, z));
+hud.sep();
+const canopyBtn = hud.button('tree', 'Canopy', (e, b) => streamer.setCanopy(b.getAttribute('aria-pressed') === 'true'), { toggle: true, pressed: shared.canopy });
+hud.button('rotL', 'Rotate left', () => rig.rotateBy(-1));
+hud.button('rotR', 'Rotate right', () => rig.rotateBy(1));
+hud.button('home', 'Home zoom', () => { rig.camera.zoom = HOME; rig.camera.updateProjectionMatrix(); });
 
 // ---------- the estate map: minimap in the corner, full map on M or the Map button ----------
 const map = createEstateMap({
@@ -81,13 +86,13 @@ const map = createEstateMap({
   },
   onJump: (x, z) => goto(Math.max(-470, Math.min(470, x)), Math.max(-470, Math.min(470, z)), rig.camera.zoom),
 });
-document.querySelector('[data-map]')?.addEventListener('click', () => map.toggle());
 window.__view = async (x, z, zoom, canopy = true) => { goto(x, z, zoom ?? HOME); streamer.setCanopy(canopy); for (let k = 0; k < 1200 && streamer.update(x, z, 50) > 0; k++) await new Promise((r) => setTimeout(r, 25)); streamer.update(x, z, 50); while (plot && !plot.done && plot.group.parent) stepPlot(); };   // screenshot hook: waits for the tiles
 window.__estate = { streamer, rig, fauna };
 
 function stepPlot() {
   const r = plot.steps.next(); if (!r.done) return;
   Object.assign(plot, r.value, { done: true }); plot.crowns.forEach((m) => { m.visible = shared.canopy; streamer.crowns.add(m); });
+  window.__rigs = plot.fauna.rigs;   // tools/scene-fingerprint.js checks Plot 01 against its baseline
 }
 
 // ---------- size and loop ----------
@@ -104,7 +109,7 @@ pipeline.renderer.setAnimationLoop((now) => {
   rig.update(dt);
   const t = rig.controls.target, sx2 = Math.round(t.x), sz2 = Math.round(t.z);   // the shadow box follows, snapped to whole metres
   sun.target.position.set(sx2, t.y, sz2); sun.position.set(sx2, t.y, sz2).addScaledVector(sunDir, 80); sun.target.updateMatrixWorld();
-  streamer.update(t.x, t.z, 1);
+  hud.setLoading(streamer.update(t.x, t.z, 6) > 0);
   if (plot && !plot.done) stepPlot(); else if (plot?.group.parent) plot.fauna.update(dt, elapsed);
   fauna.update(dt, elapsed, t.x, t.z);
   updateLabel(); map.update();

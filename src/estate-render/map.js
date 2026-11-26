@@ -45,9 +45,9 @@ function drawMap(px, { labels = true } = {}) {
   for (let k = 0; k <= 8; k++) { const v = k * E.compartment * S; g.beginPath(); g.moveTo(v, 0); g.lineTo(v, px); g.moveTo(0, v); g.lineTo(px, v); g.stroke(); }
   g.setLineDash([]);
   if (labels) {
-    g.fillStyle = 'rgba(50,38,26,0.8)'; g.font = `${Math.round(px / 70)}px "Pixelify Sans", sans-serif`;
+    g.fillStyle = 'rgba(50,38,26,0.8)'; g.font = `${Math.round(px / 70)}px -apple-system, "SF Pro Text", Inter, system-ui, sans-serif`;
     for (const c of est.compartments) g.fillText(c.id, X(c.x - E.compartment / 2) + 4, Z(c.z - E.compartment / 2) + px / 60);
-    g.font = `italic ${Math.round(px / 62)}px "Pixelify Sans", sans-serif`; g.fillStyle = 'rgba(40,30,20,0.85)'; g.textAlign = 'center';
+    g.font = `italic ${Math.round(px / 62)}px -apple-system, "SF Pro Text", Inter, system-ui, sans-serif`; g.fillStyle = 'rgba(40,30,20,0.85)'; g.textAlign = 'center';
     for (const [name, x, z] of PLACES) g.fillText(name, X(x), Z(z));
     g.textAlign = 'left';
   }
@@ -55,7 +55,7 @@ function drawMap(px, { labels = true } = {}) {
   for (const [name, x, z] of FLAGS) {
     g.strokeStyle = '#3a2a1a'; g.lineWidth = Math.max(1, px / 500); g.beginPath(); g.moveTo(X(x), Z(z)); g.lineTo(X(x), Z(z) - px / 45); g.stroke();
     g.fillStyle = '#ff6a1a'; g.beginPath(); g.moveTo(X(x), Z(z) - px / 45); g.lineTo(X(x) + px / 70, Z(z) - px / 55); g.lineTo(X(x), Z(z) - px / 70); g.fill();
-    if (labels) { g.fillStyle = '#7a3a10'; g.font = `bold ${Math.round(px / 66)}px "Pixelify Sans", sans-serif`; g.fillText(name, X(x) + px / 60, Z(z) - px / 70); }
+    if (labels) { g.fillStyle = '#7a3a10'; g.font = `bold ${Math.round(px / 66)}px -apple-system, "SF Pro Text", Inter, system-ui, sans-serif`; g.fillText(name, X(x) + px / 60, Z(z) - px / 70); }
   }
   return cv;
 }
@@ -64,22 +64,31 @@ function drawMap(px, { labels = true } = {}) {
 // ground footprint (width across, depth along); onJump(x, z)
 export function createEstateMap({ view, onJump }) {
   const css = `
-  .mini{position:fixed;top:16px;right:16px;width:200px;height:200px;border:2px solid #d8c99a;box-shadow:4px 4px 0 rgba(0,0,0,.35);background:${PAPER};cursor:crosshair;image-rendering:pixelated}
-  .mini canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}
-  .mapfull{position:fixed;inset:0;display:none;background:rgba(14,20,14,.86);z-index:5;align-items:center;justify-content:center;gap:16px;padding:16px}
-  .mapfull.open{display:flex}
-  .mapfull .sheet{position:relative;height:min(92vh,92vw - 300px);aspect-ratio:1;max-width:92vw;border:3px solid #d8c99a;box-shadow:6px 6px 0 rgba(0,0,0,.4);background:${PAPER};cursor:crosshair}
-  .mapfull .sheet canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}
-  .mapfull .info{width:280px;max-width:90vw;align-self:stretch;max-height:92vh;overflow:auto;background:${PAPER};color:#2a241c;border:3px solid #d8c99a;padding:14px 16px;font-size:15px;line-height:1.35;box-shadow:6px 6px 0 rgba(0,0,0,.4)}
-  .mapfull .info h2{margin:0 0 4px;font-size:22px;font-weight:600}.mapfull .info .muted{color:#6a5a44}
-  .mapfull .info .bar{display:flex;height:10px;margin:8px 0 4px;border:1px solid #6a5a44}.mapfull .info .bar i{display:block;height:100%}
-  .mapfull .info ul{margin:6px 0;padding-left:18px}.mapfull .close{position:absolute;top:8px;right:8px;font:inherit;font-size:15px;background:#2a241c;color:#efe9d8;border:2px solid #d8c99a;padding:4px 10px;cursor:pointer}
-  @media (max-width:760px){.mini{width:120px;height:120px;top:auto;bottom:96px}.mapfull{flex-direction:column}.mapfull .sheet{height:auto;width:92vw}.mapfull .info{width:92vw;max-height:30vh}}`;
+  .mini{position:fixed;top:calc(16px + env(safe-area-inset-top,0px));right:16px;width:168px;height:168px;border-radius:22px;overflow:hidden;cursor:pointer;background:${PAPER};border:.5px solid rgba(255,255,255,.22);box-shadow:0 18px 50px rgba(0,0,0,.28),0 2px 8px rgba(0,0,0,.18);transition:transform .15s}
+  .mini:hover{transform:scale(1.02)}.mini:active{transform:scale(.98)}
+  .mini canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:auto}
+  .mini .north{position:absolute;top:8px;left:8px;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:rgba(24,28,26,.62);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#f7f6f2;font:600 11px var(--font)}
+  .mapfull{position:fixed;inset:0;display:flex;z-index:8;align-items:center;justify-content:center;gap:16px;padding:24px;background:rgba(10,14,12,.38);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);opacity:0;pointer-events:none;transition:opacity .2s}
+  .mapfull.open{opacity:1;pointer-events:auto}
+  .mapfull .sheet{position:relative;height:min(88vh,calc(92vw - 320px));aspect-ratio:1;max-width:92vw;border-radius:26px;overflow:hidden;background:${PAPER};border:.5px solid rgba(255,255,255,.22);box-shadow:0 30px 80px rgba(0,0,0,.4);cursor:crosshair;transform:scale(.98);transition:transform .25s cubic-bezier(.2,.8,.2,1)}
+  .mapfull.open .sheet{transform:none}
+  .mapfull .sheet canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:auto}
+  .mapfull .info{width:300px;max-width:90vw;align-self:center;max-height:88vh;overflow:auto;padding:18px 20px;border-radius:22px;background:rgba(26,30,28,.78);-webkit-backdrop-filter:saturate(170%) blur(22px);backdrop-filter:saturate(170%) blur(22px);border:.5px solid rgba(255,255,255,.14);box-shadow:0 18px 50px rgba(0,0,0,.28);color:#f7f6f2;font:400 14px/1.45 var(--font)}
+  .mapfull .info .eyebrow{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(247,246,242,.42)}
+  .mapfull .info h2{margin:2px 0 2px;font-size:22px;font-weight:650;letter-spacing:-.02em}
+  .mapfull .info .muted{color:rgba(247,246,242,.62);font-size:13px}
+  .mapfull .info .stats{display:flex;gap:18px;margin:12px 0 14px}.mapfull .info .stats b{display:block;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}.mapfull .info .stats span{font-size:12px;color:rgba(247,246,242,.55)}
+  .mapfull .info .bar{display:flex;height:8px;border-radius:999px;overflow:hidden;margin:4px 0 10px;background:rgba(255,255,255,.08)}.mapfull .info .bar i{display:block;height:100%}
+  .mapfull .info ul{list-style:none;margin:0 0 12px;padding:0}.mapfull .info li{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:13px}.mapfull .info li i{width:10px;height:10px;border-radius:3px;flex:none}.mapfull .info li em{margin-left:auto;font-style:normal;color:rgba(247,246,242,.55);font-variant-numeric:tabular-nums}
+  .mapfull .info p{margin:0 0 10px}
+  .mapfull .close{position:absolute;top:14px;right:14px;display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:50%;background:rgba(24,28,26,.62);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#f7f6f2;cursor:pointer}
+  .mapfull .close svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+  @media (max-width:760px){.mini{width:116px;height:116px;border-radius:18px}.mapfull{flex-direction:column;padding:12px}.mapfull .sheet{height:auto;width:94vw}.mapfull .info{width:94vw;max-height:32vh}}`;
   document.head.append(Object.assign(document.createElement('style'), { textContent: css }));
-  const mini = document.createElement('div'); mini.className = 'mini'; mini.title = 'Click to go there · M opens the map';
+  const mini = document.createElement('div'); mini.className = 'mini'; mini.title = 'Tap to go there · M opens the map'; mini.innerHTML = '<span class="north">N</span>';
   const full = document.createElement('div'); full.className = 'mapfull'; full.setAttribute('role', 'dialog'); full.setAttribute('aria-label', 'Estate map');
-  full.innerHTML = '<div class="sheet"></div><div class="info"><h2>Estate map</h2><p class="muted">Hover a compartment to read it. Click to go there. M or Esc closes.</p></div>';
-  const sheet = full.querySelector('.sheet'), info = full.querySelector('.info'), closeBtn = Object.assign(document.createElement('button'), { className: 'close', textContent: 'Close' });
+  full.innerHTML = '<div class="sheet"></div><div class="info"><div class="eyebrow">Estate map</div><h2>1 × 1 km</h2><p class="muted">Hover a compartment to read it. Click anywhere to go there. M or Esc closes.</p></div>';
+  const sheet = full.querySelector('.sheet'), info = full.querySelector('.info'), closeBtn = Object.assign(document.createElement('button'), { className: 'close', innerHTML: '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>' }); closeBtn.setAttribute('aria-label', 'Close map');
   sheet.append(closeBtn);
   document.body.append(mini, full);
   const miniOver = document.createElement('canvas'), fullOver = document.createElement('canvas');
@@ -87,7 +96,7 @@ export function createEstateMap({ view, onJump }) {
   let ready = false;
 
   // draw the maps once the 3D is up (they take a moment to compute)
-  setTimeout(() => { mini.prepend(drawMap(400, { labels: false })); mini.append(miniOver); sheet.prepend(drawMap(1000)); sheet.append(fullOver); ready = true; }, 50);
+  setTimeout(() => { mini.prepend(drawMap(400, { labels: false })); mini.insertBefore(miniOver, mini.querySelector('.north')); sheet.prepend(drawMap(1000)); sheet.append(fullOver); ready = true; }, 50);
 
   const toWorld = (el, e) => { const r = el.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * E.size - H, (e.clientY - r.top) / r.height * E.size - H]; };
   mini.addEventListener('click', (e) => onJump(...toWorld(mini, e)));
@@ -99,11 +108,12 @@ export function createEstateMap({ view, onJump }) {
   function showInfo(x, z) {
     const est = generateEstate(), [ci, cj] = compOf(x, z), c = est.compartments.find((q) => q.i === ci && q.j === cj); if (!c) return;
     const here = coverAt(x, z), shares = Object.entries(c.share).sort((a, b) => b[1] - a[1]);
-    info.innerHTML = `<h2>Compartment ${c.id}</h2><div class="muted">${c.areaHa.toFixed(2)} ha · ${c.stems.toLocaleString()} trees ≥ 7 cm</div>
-      <div class="bar">${shares.map(([k, v]) => `<i style="width:${v * 100}%;background:${INK[k]}" title="${COVERS[k].name}"></i>`).join('')}</div>
-      <ul>${shares.slice(0, 4).map(([k, v]) => `<li>${COVERS[k].name}: ${Math.round(v * 100)}%</li>`).join('')}</ul>
-      <p><b>${COVERS[c.dominant].name}.</b> ${COVERS[c.dominant].history}.</p>
-      <p class="muted">Under the cursor: ${COVERS[here].name}${BESPOKE[here] ? ` (flagged: ${BESPOKE[here]} gets its own hand-made tile later)` : ''}.</p>`;
+    info.innerHTML = `<div class="eyebrow">Compartment</div><h2>${c.id} · ${COVERS[c.dominant].name}</h2>
+      <div class="stats"><div><b>${c.areaHa.toFixed(2)}</b><span>hectares</span></div><div><b>${c.stems.toLocaleString()}</b><span>trees ≥ 7 cm</span></div></div>
+      <div class="bar">${shares.map(([k, v]) => `<i style="width:${v * 100}%;background:${INK[k]}"></i>`).join('')}</div>
+      <ul>${shares.slice(0, 4).map(([k, v]) => `<li><i style="background:${INK[k]}"></i>${COVERS[k].name}<em>${Math.round(v * 100)}%</em></li>`).join('')}</ul>
+      <p>${COVERS[c.dominant].history.replace(/^./, (q) => q.toUpperCase())}.</p>
+      <p class="muted">Under the cursor: ${COVERS[here].name}${BESPOKE[here] ? ` — flagged: ${BESPOKE[here]} gets its own hand-made version later` : ''}.</p>`;
   }
 
   // the camera marker: a dot, the facing, and the ground footprint of the view

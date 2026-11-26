@@ -17,13 +17,13 @@ A forest ecology game with an academic feel. The player directs a small field st
 - After each change: `npm test`, `npm run build`, then `npm run screens -- <set> --compare <previous set>` (see below).
 
 ## Quality gate: screenshots
-`npm run screens -- <set>` loads the built page in headless Chromium with `?still` (time frozen), saves a fixed set of viewpoints to `docs/screens/<set>/`, fails on any console error, and checks determinism (same seed → same scene fingerprint and identical frames; another seed → another scene). Add `--compare <base>` to diff each shot against an earlier set.
+`npm run screens -- <set>` loads the estate in headless Chromium with `?still` (time frozen), waits for every tile in view, saves a fixed set of viewpoints to `docs/screens/<set>/`, fails on any console error, checks that a fresh load renders the same view identically, and prints Plot 01's scene fingerprint. Add `--compare <base>` to diff each shot against an earlier set.
 - A **pure refactor** must report `same` for every shot.
 - A step that **changes the look** will report `DIFF`: then look at the shots against the baseline yourself, and commit the new set (e.g. `docs/screens/s2/`) as the next baseline.
 - The viewpoint list lives in `tools/screens.cjs`. Add viewpoints as the world grows; don't change existing ones.
 
 ## Module map (`src/`)
-- `main.js` — the plot page: pipeline, camera, lights, toolbar, loop. The scene itself comes from `world/build-plot.js`, which runs the builders **in a fixed order** (see below) into any target (the plot page's scene, or a group in the estate).
+- `estate-main.js` — the one page (`public/index.html`): the estate, streamed tile by tile, with Plot 01 built into its tile. Plot 01's scene comes from `world/build-plot.js`, which runs the builders **in a fixed order** (see below).
 - `core/` — seeded random (`random.js`) and noise (`noise.js`). Pure.
 - `world/fields.js` — ground fields of the map (`height`, `habitatW`, `streamD`, `wallX`, `outcropW`, `pathW`, `gapW`…). Pure.
 - `world/layout.js` — the seeded tree layout (records with ids) from the habitat rules. Pure; uses its own random stream (`map.layoutSeed`), so builder changes don't move the forest.
@@ -33,7 +33,7 @@ A forest ecology game with an academic feel. The player directs a small field st
 - `fauna/` — `parts.js` (ellipsoid / segment / pivot helpers), `rigs.js` (mammals), `rigs-birds.js`, `rigs-small.js` (amphibians, reptiles, insects), `motion.js` (steering, flight arcs, wing lift), `behaviours.js` (the prototype's animals), `behaviours-more.js` (the rest), `index.js` (placement and the Follow list).
 - `world/obstacles.js` — where animals can't walk (trunks, water, wall, rocks, root plates, logs). Pure; `test/fauna.test.js` checks every route in `data/fauna.json` against it.
 - `render/` — `pipeline.js` (renderer, low-res target, pixel post pass), `camera.js` (map controls, follow, keyboard), `lights.js`, `materials.js` (toon ramp), `wind.js`, `textures.js`, `instancing.js` (splits instanced meshes into 15 m chunks for frustum culling).
-- `ui/` — keyboard state, camera toolbar.
+- `ui/` — keyboard state; `hud.js` (place card, dock of icon buttons, popover menus, loading pill; styles in `public/index.html`).
 - `estate/` — the 1 km² estate (`world.md` section 12): `terrain.js` (relief, brooks with downhill beds, beaver pond), `cover.js` (land cover and its history), `index.js` (`generateEstate()`: tiles, compartments, patches, ~38k tree records, charcoal platforms). Pure. Map image: `node tools/estate-map.cjs`.
 - `estate/fauna.js` — the estate's animals as data (home ranges on walkable ground), `walkable()`. Pure.
 - `estate/tile-plan.js` — `planTile(i, j)`: what goes where in one tile, from the estate's 2D design, seeded per tile; `tileFields(i, j)`: per-tile grids of height, cover, canopy shade and spruce nearness for fast dense ground cover. Pure.
