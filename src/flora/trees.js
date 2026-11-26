@@ -74,7 +74,7 @@ export function buildTrees({ scene, rng, tex, instances, sprites }, clumps) {
       const u = rnd() * 2 - 1, th = rnd() * Math.PI * 2, rad = Math.pow(rnd(), 0.35);
       const sx = Math.sqrt(1 - u * u) * Math.cos(th), sz = Math.sqrt(1 - u * u) * Math.sin(th), lump = 0.82 + 0.3 * vnoise(sx * 2 + t.x, u * 2 + sz * 2);
       if (t.thin && vnoise(sx * 3 + t.z, u * 3) < t.thin) continue;   // crown loss: whole sections bare
-      clumps.leaf.push({ p: new THREE.Vector3(t.x + sx * t.r * rad * lump, cy + u * t.r * squash * rad * lump, t.z + sz * t.r * rad * lump), n: new THREE.Vector3(sx, u * 1.2 + 0.25, sz).normalize(), s: rr(1.3, 2.0) * R.crown.clumpScale, c: pick(R.leaves) });
+      clumps.leaf.push({ p: new THREE.Vector3(t.x + sx * t.r * rad * lump, cy + u * t.r * squash * rad * lump, t.z + sz * t.r * rad * lump), n: new THREE.Vector3(sx, u * 1.2 + 0.25, sz).normalize(), s: rr(1.3, 2.0) * R.crown.clumpScale * Math.min(1, t.r / 2), c: pick(R.leaves) });   // small crowns, smaller clumps
     }
   }
   { // black lenticel marks on the birches

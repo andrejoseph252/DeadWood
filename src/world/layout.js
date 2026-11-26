@@ -88,7 +88,7 @@ export function generateLayout(seed = MAP.layoutSeed) {
     trees.push({ kind, x, z, h: kind === 'birch' ? rr(7, 8.8) : kind === 'rowan' ? rr(4.5, 5.5) : 5.5, r }); n++;
   }
   // H7 regrowth in the windthrow: a few young birches
-  for (let i = 0, n = 0; i < 1000 && n < 7; i++) {
+  for (let i = 0, n = 0; i < 1000 && n < 4; i++) {
     const x = rr(wallX(5) + 1.5, HALF - 1), z = rr(MAP.zones.plantationSouth + 1, MAP.zones.windthrowSouth - 1), r = rr(1.2, 1.5);
     if (habitatW(x, z)[6] < 0.6 || !clearOf(x, z) || !keepIn(x, z, r) || !free(x, z, r, 1)) continue;
     trees.push({ kind: 'birch', x, z, h: rr(4.5, 5.5), r }); n++;
