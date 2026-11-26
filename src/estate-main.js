@@ -45,7 +45,25 @@ const streamer = createStreamer(scene, shared, {
   onDrop(i, j) { if (plot && i === PI && j === PJ) scene.remove(plot.group); },
 });
 const yAt = (x, z) => height(x, z) - Y0;
-const goto = (x, z, zoom = HOME) => { rig.lookAt(x, yAt(x, z) + 0.4, z); rig.camera.zoom = zoom; rig.camera.updateProjectionMatrix(); };
+// a jump arrives under a short veil until every tile in view is at full detail (no veil if they are already cached)
+const goto = (x, z, zoom = HOME) => { rig.lookAt(x, yAt(x, z) + 0.4, z); rig.camera.zoom = zoom; rig.camera.updateProjectionMatrix(); arriving = true; };
+let arriving = true;   // also covers the first load
+
+// the tiles the screen covers: the four screen corners cast along the view onto the ground plane at the target's
+// height (orthographic camera), as a range of tile indices; a little slack for trees standing above the ground
+const _o = new THREE.Vector3(), _d = new THREE.Vector3(), _r = new THREE.Vector3(), _u = new THREE.Vector3();
+function viewTiles() {
+  const c = rig.camera, t = rig.controls.target; c.updateMatrixWorld();
+  c.getWorldDirection(_d); _r.setFromMatrixColumn(c.matrixWorld, 0); _u.setFromMatrixColumn(c.matrixWorld, 1);
+  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+  for (const [sx, sy] of [[c.left, c.top], [c.right, c.top], [c.left, c.bottom], [c.right, c.bottom]]) for (const lift of [-4, 12]) {
+    _o.copy(c.position).addScaledVector(_r, sx / c.zoom).addScaledVector(_u, sy / c.zoom);
+    const k = (t.y + lift - _o.y) / (_d.y || -1e-6), gx = _o.x + _d.x * k, gz = _o.z + _d.z * k;
+    x0 = Math.min(x0, gx); x1 = Math.max(x1, gx); z0 = Math.min(z0, gz); z1 = Math.max(z1, gz);
+  }
+  const T = E.tile, Hh = E.size / 2;
+  return { i0: Math.floor((x0 + Hh) / T), i1: Math.floor((x1 + Hh) / T), j0: Math.floor((z0 + Hh) / T), j1: Math.floor((z1 + Hh) / T) };
+}
 const [sx, sz] = (params.get('at') || '-40,20').split(',').map(Number);
 goto(sx, sz);
 // no waiting: the page shows at once and tiles stream in, nearest first, from the worker pool
@@ -86,7 +104,7 @@ const map = createEstateMap({
   },
   onJump: (x, z) => goto(Math.max(-470, Math.min(470, x)), Math.max(-470, Math.min(470, z)), rig.camera.zoom),
 });
-window.__view = async (x, z, zoom, canopy = true) => { goto(x, z, zoom ?? HOME); streamer.setCanopy(canopy); for (let k = 0; k < 1200 && streamer.update(x, z, 50) > 0; k++) await new Promise((r) => setTimeout(r, 25)); streamer.update(x, z, 50); while (plot && !plot.done && plot.group.parent) stepPlot(); };   // screenshot hook: waits for the tiles
+window.__view = async (x, z, zoom, canopy = true) => { goto(x, z, zoom ?? HOME); streamer.setCanopy(canopy); for (let k = 0; k < 2400 && (streamer.update(x, z, 50, viewTiles()) > 0 || !streamer.viewReady); k++) await new Promise((r) => setTimeout(r, 25)); streamer.update(x, z, 50, viewTiles()); while (plot && !plot.done && plot.group.parent) stepPlot(); };   // screenshot hook: waits for the tiles
 window.__estate = { streamer, rig, fauna };
 
 function stepPlot() {
@@ -109,7 +127,11 @@ pipeline.renderer.setAnimationLoop((now) => {
   rig.update(dt);
   const t = rig.controls.target, sx2 = Math.round(t.x), sz2 = Math.round(t.z);   // the shadow box follows, snapped to whole metres
   sun.target.position.set(sx2, t.y, sz2); sun.position.set(sx2, t.y, sz2).addScaledVector(sunDir, 80); sun.target.updateMatrixWorld();
-  hud.setLoading(streamer.update(t.x, t.z, 6) > 0);
+  // under the veil there is no animation to keep smooth, so finished tiles are turned into meshes faster
+  const busy = streamer.update(t.x, t.z, arriving ? 40 : 6, viewTiles()) > 0, plotting = plot && !plot.done && plot.group.parent;
+  if (arriving && plotting) for (let k = 0; k < 4 && !plot.done; k++) stepPlot();
+  if (arriving && streamer.viewReady && !plotting) arriving = false;
+  hud.setVeil(arriving); hud.setLoading(busy && !arriving);
   if (plot && !plot.done) stepPlot(); else if (plot?.group.parent) plot.fauna.update(dt, elapsed);
   fauna.update(dt, elapsed, t.x, t.z);
   updateLabel(); map.update();

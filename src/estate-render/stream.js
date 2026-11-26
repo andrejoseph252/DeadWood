@@ -12,7 +12,7 @@ import { HALF } from '../estate/terrain.js';
 import E from '../data/estate.json' with { type: 'json' };
 
 const N = E.size / E.tile;
-export function createStreamer(scene, shared, { nearRing = 1, farRing = 2, onBuild = () => {}, onDrop = () => {}, workerUrl = 'estate-worker.js', cacheNear = 22, cacheFar = 60 } = {}) {
+export function createStreamer(scene, shared, { nearRing = 1, onBuild = () => {}, onDrop = () => {}, workerUrl = 'estate-worker.js', cacheNear = 70, cacheFar = 60 } = {}) {
   const cache = new Map();   // "i,j|lod" -> { built, used }
   const shown = new Map();   // "i,j" -> { i, j, lod, built }
   const crowns = new Set(), pending = new Map(), ready = [];   // pending: "i,j|lod" -> true; ready: finished data
@@ -40,7 +40,10 @@ export function createStreamer(scene, shared, { nearRing = 1, farRing = 2, onBui
   }
 
   // ---------- each frame ----------
-  function update(x, z, budgetMs = 6) {
+  // view: { i0, i1, j0, j1 } the tiles the screen covers (from the camera's ground footprint); every one of them, plus a
+  // one-tile margin, is wanted at full detail. Far versions are only a fallback, shown if you outrun the builders.
+  let viewReady = false;
+  function update(x, z, budgetMs = 6, view = null) {
     const ci = Math.floor((x + HALF) / E.tile), cj = Math.floor((z + HALF) / E.tile), now = performance.now();
     if (lastC) { vel = [vel[0] * 0.9 + (x - lastC[0]) * 0.1, vel[1] * 0.9 + (z - lastC[1]) * 0.1]; } lastC = [x, z];
     // 1. turn finished data into meshes, within the time budget
@@ -49,15 +52,18 @@ export function createStreamer(scene, shared, { nearRing = 1, farRing = 2, onBui
       const { key, data } = ready.shift(); pending.delete(key);
       const built = tileMeshes(data, shared); cache.set(key, { built, used: now });
     }
-    // 2. what should be shown, nearest first; request what is missing
+    // 2. what should be shown: the view's tiles plus a margin, all at full detail, nearest first
+    const v = view || { i0: ci - nearRing, i1: ci + nearRing, j0: cj - nearRing, j1: cj + nearRing };
     const want = [];
-    for (let dj = -farRing; dj <= farRing; dj++) for (let di = -farRing; di <= farRing; di++) {
-      const i = ci + di, j = cj + dj; if (i < 0 || j < 0 || i >= N || j >= N) continue;
-      want.push({ i, j, lod: Math.max(Math.abs(di), Math.abs(dj)) <= nearRing ? 'near' : 'far', d: Math.hypot(di, dj) });
+    for (let j = v.j0 - 1; j <= v.j1 + 1; j++) for (let i = v.i0 - 1; i <= v.i1 + 1; i++) {
+      if (i < 0 || j < 0 || i >= N || j >= N) continue;
+      const inView = i >= v.i0 && i <= v.i1 && j >= v.j0 && j <= v.j1;
+      want.push({ i, j, lod: 'near', inView, d: Math.hypot(i - ci, j - cj) + (inView ? 0 : 100) });   // tiles in view before the margin
     }
     want.sort((a, b) => a.d - b.d);
-    for (const w of want) { if (!cache.has(keyOf(w.i, w.j, 'far'))) request(w.i, w.j, 'far'); }   // far versions first: something to show quickly
-    for (const w of want) if (w.lod === 'near') request(w.i, w.j, 'near');
+    for (const w of want) if (w.inView) request(w.i, w.j, 'near');
+    for (const w of want) if (w.inView && !cache.has(keyOf(w.i, w.j, 'near'))) request(w.i, w.j, 'far');   // cheap fallback, only while the near build is on its way
+    for (const w of want) if (!w.inView) request(w.i, w.j, 'near');
     // prefetch: tiles ahead of the movement
     const sp = Math.hypot(vel[0], vel[1]);
     if (sp > 0.02) { const ux = vel[0] / sp, uz = vel[1] / sp, ai = Math.round(ci + ux * 2), aj = Math.round(cj + uz * 2); for (const [di, dj] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) { const i = ai + di, j = aj + dj; if (i >= 0 && j >= 0 && i < N && j < N) request(i, j, 'near'); } }
@@ -80,9 +86,10 @@ export function createStreamer(scene, shared, { nearRing = 1, farRing = 2, onBui
       const list = [...cache.entries()].filter(([key]) => key.endsWith(lod)).sort((a, b) => a[1].used - b[1].used);
       for (const [key, c] of list.slice(0, Math.max(0, list.length - max))) { if ([...shown.values()].some((s) => s.built === c.built)) continue; c.built.dispose(); cache.delete(key); }
     }
+    viewReady = want.every((w) => !w.inView || shown.get(`${w.i},${w.j}`)?.lod === 'near');
     return pending.size + ready.length;
   }
   function detach(s) { scene.remove(s.built.group); s.built.crowns.forEach((m) => crowns.delete(m)); }
   function setCanopy(on) { shared.canopy = on; crowns.forEach((m) => { m.visible = on; }); }
-  return { update, setCanopy, tiles: shown, crowns, get usingWorkers() { return !fallback; } };
+  return { update, setCanopy, tiles: shown, crowns, get usingWorkers() { return !fallback; }, get viewReady() { return viewReady; } };
 }

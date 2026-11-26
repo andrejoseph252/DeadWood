@@ -63,6 +63,10 @@ button{font:inherit;color:inherit}
 .pop .sub{display:block;font-size:12px;color:var(--text-2);margin-top:1px}
 .pop .flag{margin-left:auto;font-size:11px;font-weight:600;color:var(--danger)}
 
+/* arriving veil: covers a jump until every tile in view is at full detail */
+.veil{position:fixed;inset:0;z-index:2;display:grid;place-items:center;background:rgba(18,26,20,.55);-webkit-backdrop-filter:blur(28px) saturate(140%);backdrop-filter:blur(28px) saturate(140%);opacity:0;pointer-events:none;transition:opacity .45s ease}
+.veil.on{opacity:1;pointer-events:auto;transition:opacity .12s ease}
+.veil-card{display:flex;align-items:center;gap:10px;padding:10px 16px 10px 13px;border-radius:999px;font-size:13px;font-weight:500;color:var(--text-2)}
 /* loading pill and hint toast */
 .pill{position:fixed;top:calc(16px + var(--safe-t));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:7px 12px 7px 10px;border-radius:999px;font-size:12px;font-weight:500;color:var(--text-2);opacity:0;transition:opacity .3s;pointer-events:none}
 .pill.on{opacity:1}

@@ -30,8 +30,9 @@ export function createHud() {
   const place = el('div', 'place glass', '<div class="row"><span class="chip">—</span></div><h1>Loading the estate…</h1><p></p>');
   const dock = el('div', 'dock glass'); dock.setAttribute('role', 'toolbar'); dock.setAttribute('aria-label', 'Controls');
   const pill = el('div', 'pill glass', '<span class="spin"></span><span>Loading terrain</span>');
+  const veil = el('div', 'veil on', '<div class="veil-card glass"><span class="spin"></span><span>Arriving…</span></div>');
   const toast = el('div', 'toast glass', 'Drag to move · pinch or scroll to zoom · two fingers to rotate · <kbd>M</kbd> map');
-  document.body.append(place, dock, pill, toast);
+  document.body.append(veil, place, dock, pill, toast);
   setTimeout(() => toast.classList.add('off'), 7000);
 
   const button = (name, label, onClick, { toggle = false, pressed = false } = {}) => {
@@ -62,7 +63,7 @@ export function createHud() {
     return { update: render };
   }
 
-  let last = '';
+  let last = '', veilT = 0;
   return {
     button, sep, menu,
     setPlace({ chip, title, text, flagged }) {
@@ -70,5 +71,7 @@ export function createHud() {
       place.querySelector('.chip').textContent = chip; place.querySelector('h1').textContent = title; place.querySelector('p').textContent = text; place.classList.toggle('flagged', !!flagged);
     },
     setLoading(on) { pill.classList.toggle('on', on); },
+    // the veil only appears if a jump is still unfinished after a moment (cached places arrive without it)
+    setVeil(on) { if (on) { veilT ||= performance.now(); if (performance.now() - veilT > 90 || veil.classList.contains('on')) veil.classList.add('on'); } else { veilT = 0; veil.classList.remove('on'); } },
   };
 }
