@@ -120,7 +120,7 @@ export function buildGround({ scene, rng, debug }) {
 // The stream as a ribbon of water following the channel, plus the spring pool and the backwater.
 // The surface never rises downstream, so a bump in the bed reads as a riffle instead of water flowing uphill.
 function buildWater(scene, { rnd, rr }) {
-  const waterM = new THREE.MeshBasicMaterial({ color: C('#3f6a78') }), poolM = new THREE.MeshBasicMaterial({ color: C('#2f5260') });
+  const waterM = new THREE.MeshBasicMaterial({ color: C('#3f6a78'), side: THREE.DoubleSide }), poolM = new THREE.MeshBasicMaterial({ color: C('#2f5260') });
   const pts = [];
   for (let s = 0; s < STREAM_LEN; s += 0.2) {
     const [x, z] = streamAt(s), [x2, z2] = streamAt(Math.min(STREAM_LEN, s + 0.2)), l = Math.hypot(x2 - x, z2 - z) || 1;

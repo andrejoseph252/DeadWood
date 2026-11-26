@@ -112,13 +112,13 @@ export function buildDetails(ctx) {
   // yarrow (Achillea millefolium) flat white heads; common knapweed (Centaurea nigra) purple; ribwort plantain
   // (Plantago lanceolata) dark heads on bare stalks; molehills where the mole (Talpa europaea) pushes up soil
   { const stalks = [];
-    for (let i = 0, n = 0; i < 6000 && n < 260; i++) {
+    for (let i = 0, n = 0; i < 9000 && n < 420; i++) {
       const [x, z] = sample(rng, 0.5); if (meadowW(x, z) < 0.7 || channelW(x, z) > 0.02 || fbm(x * 0.5 + 33, z * 0.5) < 0.42) continue;
-      const kind = rnd(), gy = height(x, z), h = rr(0.4, 0.75);
+      const kind = rnd(), gy = height(x, z), h = rr(0.7, 0.95);   // flowering heads stand above the June sward
       stalks.push({ x, y: gy, z, sx: 1, sy: h, sz: 1, c: '#5a7a2c' });
-      if (kind < 0.4) L.umbels.push({ x, y: gy + h, z, c: '#f0ece0', s: rr(0.14, 0.2) });
-      else if (kind < 0.7) L.tuftTops.push({ x, y: gy + h, z, c: pick(['#8a4a9a', '#9a5aa8']), s: 0.11 });
-      else L.tuftTops.push({ x, y: gy + h, z, c: '#3a3020', s: 0.08 });
+      if (kind < 0.4) L.umbels.push({ x, y: gy + h, z, c: '#f0ece0', s: rr(0.24, 0.32) });
+      else if (kind < 0.7) L.tuftTops.push({ x, y: gy + h, z, c: pick(['#8a4a9a', '#9a5aa8']), s: 0.17 });
+      else L.tuftTops.push({ x, y: gy + h, z, c: '#3a3020', s: 0.12 });
       n++;
     }
     instances(stick(0.012, 0.01), toon(), stalks, { wind: { strength: 0.08, grass: true } });

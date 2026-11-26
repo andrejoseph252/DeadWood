@@ -27,7 +27,8 @@ export function buildGrass({ rng, lite, instances }) {
     const dens = Math.max(gap, patch, open) * (1 - pw) * (puddleD(x, z) < 1.05 ? 0 : 1) * clearW(x, z)
       * (channelW(x, z) > 0.05 ? 0 : 1) * (1 - sstep(0.15, 0.4, 4 * o * (1 - o))) * (1 - sstep(0.1, 0.4, spoilW(x, z) + pitW(x, z))) * (1 - charcoalW(x, z) * 0.7);
     if (rnd() > dens) continue;
-    const s = rr(0.7, 1.35) * (0.55 + Math.max(gap * 0.75, mw * 1.05)); groundColor(x, z, tcol); tcol.offsetHSL(rr(-0.02, 0.02), 0.05, rr(0, 0.08));
+    // blade size; a June meadow sward stands up to ~0.9 m
+    const s = rr(0.7, 1.35) * (0.55 + Math.max(gap * 0.75, mw * 0.6)); groundColor(x, z, tcol); tcol.offsetHSL(rr(-0.02, 0.02), 0.05, rr(0, 0.08));
     list.push({ x, y: height(x, z), z, ry: rnd() * 6.28, sx: s, sy: s * rr(0.8, 1.3), sz: s, c: '#' + tcol.getHexString() });
   }
   instances(blade, toon({ vertexColors: true, side: THREE.DoubleSide }), list, { wind: { strength: 0.18, grass: true } });
