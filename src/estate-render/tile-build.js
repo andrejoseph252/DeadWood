@@ -2,14 +2,15 @@
 // generated off the main thread (src/estate-worker.js) and handed to the GPU with no per-item work. The rules are
 // Plot 01's: its palettes, crown construction and ground-cover densities. No scene objects are created here.
 //
-// Output: { i, j, lod, ground: { pos, col, nrm, idx }, water: [{ pos, idx }], pond, borders: [{ pos, col, idx }],
+// Output: { i, j, lod, ground: { pos, col, nrm, idx }, water: { pos, flow, wet, idx } or null, borders: [{ pos, col, idx }],
 //           stakes: [[x, y, z]], layers: { key: { n, m (4x4 per instance), c (linear rgb), a (aNormal, clumps) } } }
 import * as THREE from 'three';
 import species from '../data/species.json' with { type: 'json' };
 import { fbm, vnoise, sstep, hash } from '../core/noise.js';
 import { createRng } from '../core/random.js';
 import { planTile, tileFields, CONIFER, coverAt, height } from '../estate/tile-plan.js';
-import { BROOKS, POND, pondW, HALF, PLOT, inPlot } from '../estate/terrain.js';
+import { BROOKS, POND, pondW, pondR, DAM, damSide, HALF, PLOT, inPlot } from '../estate/terrain.js';
+import { waterBuf, addStrip, addPool, addSection, finish } from '../world/water-data.js';
 import { roadD } from '../estate/cover.js';
 import { groundColor as plotGroundColor } from '../world/ground.js';
 
@@ -50,7 +51,7 @@ export function buildTileData(i, j, lod, detail = 1) {
   const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
   const F = near ? tileFields(i, j) : null, { x0, z0, size } = plan, cx = x0 + size / 2, cz = z0 + size / 2;
   const Y = F ? (x, z) => F.hAt(x, z) - Y0 : yAt, L = {}, lay = (k) => (L[k] ||= layer());
-  const out = { i, j, lod, water: [], borders: [], stakes: [], pond: null, layers: L, bespoke: plan.bespoke };
+  const out = { i, j, lod, water: null, borders: [], stakes: [], layers: L, bespoke: plan.bespoke };
 
   // ---------- ground ----------
   const SEG = near ? 125 : 40, g = new THREE.PlaneGeometry(size, size, SEG, SEG); g.rotateX(-Math.PI / 2); g.translate(cx, 0, cz);
@@ -75,20 +76,9 @@ export function buildTileData(i, j, lod, detail = 1) {
   out.ground = { pos: pos.array, col, nrm: g.attributes.normal.array, idx: g.index.array };
   if (Math.abs(x0) >= HALF - 0.01 || Math.abs(x0 + size) >= HALF - 0.01 || Math.abs(z0) >= HALF - 0.01 || Math.abs(z0 + size) >= HALF - 0.01) out.borders = borderSides(x0, z0, size);
 
-  // ---------- water ----------
-  for (const b of Object.values(BROOKS)) {
-    if (b.line.farFrom(cx, cz, size)) continue;
-    let run = [];
-    const flush = () => { if (run.length > 1) out.water.push(ribbon(run, b.halfWidth * 0.8)); run = []; };
-    for (let s = 0; s <= b.line.length; s += 0.5) {
-      const [x, z] = b.line.at(s);
-      if (x < x0 - 0.5 || x > x0 + size + 0.5 || z < z0 - 0.5 || z > z0 + size + 0.5 || pondW(x, z) > 0.6 || inPlot(x, z, -0.3)) { flush(); continue; }
-      const [x2, z2] = b.line.at(s + 0.5), l = Math.hypot(x2 - x, z2 - z) || 1;
-      run.push({ x, z, y: b.bedAt(s) + b.depth * 0.55 - Y0, nx: -(z2 - z) / l, nz: (x2 - x) / l });
-    }
-    flush();
-  }
-  if (POND.centre[0] >= x0 && POND.centre[0] < x0 + size && POND.centre[1] >= z0 && POND.centre[1] < z0 + size) out.pond = { x: POND.centre[0], y: POND.level - Y0, z: POND.centre[1], rx: POND.rx, rz: POND.rz, yaw: POND.yaw };
+  // ---------- water: brook ribbons (following the channel, depth from the ground under them), the pond as a grid
+  // of still water held at the dam's level, and cross-sections where a brook runs out through the estate's cut face ----------
+  out.water = buildWater(x0, z0, size, near, Y);
 
   // ---------- trees ----------
   for (const t of plan.trees) {
@@ -139,10 +129,51 @@ export function buildTileData(i, j, lod, detail = 1) {
   return out;
 }
 
-function ribbon(run, w) {
-  const P = [], I = [];
-  run.forEach((p, k) => { P.push(p.x + p.nx * w, p.y, p.z + p.nz * w, p.x - p.nx * w, p.y, p.z - p.nz * w); if (k) { const a = (k - 1) * 2; I.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } });
-  return { pos: new Float32Array(P), idx: new Uint32Array(I) };
+function buildWater(x0, z0, size, near, Y) {
+  const B = waterBuf(), cx = x0 + size / 2, cz = z0 + size / 2, ds = near ? 0.5 : 2;
+  const inT = (x, z, m) => x >= x0 - m && x <= x0 + size + m && z >= z0 - m && z <= z0 + size + m;
+  const LV = POND.level;
+  for (const b of Object.values(BROOKS)) {
+    if (b.line.farFrom(cx, cz, size)) continue;
+    const K = near ? Math.max(4, Math.ceil((b.halfWidth * 4) / 0.35)) : 3, L = b.line.length, J = b.joins && BROOKS[b.joins.key];
+    let rows = [];
+    const flush = () => { addStrip(B, rows); rows = []; };
+    for (let s = 0; s <= L; s += ds) {
+      const [x, z] = b.line.at(s);
+      if (!inT(x, z, 1) || inPlot(x, z, -0.3) || Math.abs(x) > HALF || Math.abs(z) > HALF) { flush(); continue; }
+      const i = Math.max(0, Math.min(b.bed.length - 1, Math.round(s))), riff = b.riff[i], pool = b.pool[i], hw = b.hw[i];
+      let y = b.surfaceAt(s), rough = riff * 0.8, foamC = 0;
+      if (J && L - s < 6) y += (J.surfaceAt(b.joins.s) - y) * ((s - (L - 6)) / 6);
+      if (J && J.line.near(x, z, 6).d < J.halfWidth * 0.7) { flush(); continue; }   // the brook it joins carries on from here
+      if (b.key === 'main' && s > DAM.s - 0.8 && s < DAM.s + 2.6) { const f = Math.min(1, Math.max(0, (s - DAM.s + 0.4) / 2.6)); y = LV + 0.005 + (b.surfaceAt(DAM.s + 2.6) - LV) * f * f * (3 - 2 * f); rough = 1; foamC = 0.4 + 0.6 * f; }
+      else if (y < LV + 0.02 && pondR(x, z) < 1.4 && damSide(x, z) < 0) { flush(); continue; }   // under the pond
+      const [ax, az] = b.line.dir(Math.max(0, s - 0.75)), [bx, bz] = b.line.dir(Math.min(L, s + 0.75)), tl = Math.hypot(ax + bx, az + bz) || 1, tx = (ax + bx) / tl, tz = (az + bz) / tl;
+      const wR = hw * 1.55, row = [], speed = 0.35 + 0.5 * riff - 0.2 * pool;
+      for (let c = 0; c <= K; c++) {
+        const o = -wR + (2 * wR * c) / K, vx = x + tz * o, vz = z - tx * o, gy = Y(vx, vz) + Y0;
+        row.push([vx, y - Y0, vz, s, o, speed, rough, y - gy, foamC * (1 - Math.abs(o) / wR * 0.5)]);
+      }
+      rows.push(row);
+    }
+    flush();
+    // where the brook leaves the estate, its water shows in the cut face
+    if (Math.abs(b.points[b.points.length - 1][0]) > HALF || Math.abs(b.points[b.points.length - 1][1]) > HALF) {
+      let s0 = null; for (let s = 0; s <= L; s += 0.25) { const [x, z] = b.line.at(s); if (Math.abs(x) > HALF || Math.abs(z) > HALF) { s0 = s; break; } }
+      if (s0 !== null) {
+        const [x, z] = b.line.at(s0), y = b.surfaceAt(s0), onX = Math.abs(x) > HALF - 0.5, pts = [];
+        const ex = onX ? Math.sign(x) * (HALF + 0.02) : null, ez = onX ? null : Math.sign(z) * (HALF + 0.02);
+        if (inT(onX ? ex : x, onX ? z : ez, 0.1)) {
+          for (let u = -b.halfWidth * 3; u <= b.halfWidth * 3; u += 0.25) { const px = onX ? ex : x + u, pz = onX ? z + u : ez; pts.push([px, pz, height(Math.max(-HALF, Math.min(HALF, px)), Math.max(-HALF, Math.min(HALF, pz))) - Y0]); }
+          addSection(B, pts, y - Y0);
+        }
+      }
+    }
+  }
+  // the pond: every point upstream of the dam and near the pond where the ground lies below the water level
+  const pr = Math.max(POND.rx, POND.rz) * 1.5, [pcx, pcz] = POND.centre;
+  const px0 = Math.max(x0, pcx - pr), px1 = Math.min(x0 + size, pcx + pr), pz0 = Math.max(z0, pcz - pr), pz1 = Math.min(z0 + size, pcz + pr);
+  if (px1 > px0 && pz1 > pz0) addPool(B, px0, pz0, px1, pz1, near ? 1 : 2.5, LV - Y0, (x, z) => LV - (Y(x, z) + Y0), (x, z) => damSide(x, z) < 0 && pondR(x, z) < 1.45);
+  return finish(B);
 }
 
 // Ground cover at Plot 01's density, cell by cell (1 m), from the cover and canopy shade there. Per m² at detail 1.
@@ -215,7 +246,7 @@ function borderSides(x0, z0, size) {
 // all the typed arrays in a tile's data, for transferring from a worker without copying
 export function transferables(d) {
   const t = [d.ground.pos.buffer, d.ground.col.buffer, d.ground.nrm.buffer, d.ground.idx.buffer];
-  for (const w of d.water) t.push(w.pos.buffer, w.idx.buffer);
+  if (d.water) t.push(d.water.pos.buffer, d.water.flow.buffer, d.water.wet.buffer, d.water.idx.buffer);
   for (const b of d.borders) t.push(b.pos.buffer, b.col.buffer, b.idx.buffer);
   for (const l of Object.values(d.layers)) { t.push(l.m.buffer, l.c.buffer); if (l.a) t.push(l.a.buffer); }
   return t;

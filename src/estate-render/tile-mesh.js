@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { C, toon, tm } from '../render/materials.js';
 import { windify } from '../render/wind.js';
+import { waterMaterial, waterGeometry } from '../render/water.js';
 import { createRng } from '../core/random.js';
 
 const stick = (r0, r1, sides) => new THREE.CylinderGeometry(r1, r0, 1, sides).translate(0, 0.5, 0);
@@ -41,9 +42,8 @@ function kit(tex) {
     twig: { geo: new THREE.CylinderGeometry(0.015, 0.02, 1, 4).translate(0, 0.5, 0), mat: plain, cast: true }, limb: { geo: new THREE.CylinderGeometry(0.07, 0.1, 1, 6).translate(0, 0.5, 0), mat: plain, cast: true },
     rock: { geo: new THREE.IcosahedronGeometry(1, 0), mat: plain, cast: true }, stump: { geo: new THREE.CylinderGeometry(0.18, 0.22, 1, 8).translate(0, 0.5, 0), mat: plain, cast: true },
     pinecone: { geo: new THREE.CapsuleGeometry(0.035, 0.07, 2, 5).rotateZ(Math.PI / 2), mat: plain }, stalk: { geo: new THREE.CylinderGeometry(0.012, 0.016, 1, 4).translate(0, 0.5, 0), mat: stalkM },
-    _ground: toon({ vertexColors: true }), _water: new THREE.MeshBasicMaterial({ color: C('#3f6a78'), side: THREE.DoubleSide }), _pond: new THREE.MeshBasicMaterial({ color: C('#2f5a68') }),
+    _ground: toon({ vertexColors: true }),
     _border: toon({ vertexColors: true, side: THREE.DoubleSide }), _stake: tm('#b88d58'), _flag: toon({ color: C('#ff6a1a'), side: THREE.DoubleSide }), _stakeG: new THREE.BoxGeometry(0.08, 1.2, 0.08).translate(0, 0.6, 0), _flagG: new THREE.PlaneGeometry(0.45, 0.2),
-    _circle: new THREE.CircleGeometry(1, 28),
   };
   return KIT;
 }
@@ -54,8 +54,7 @@ export function tileMeshes(d, shared) {
   const geo = (attrs, idx) => { const g = new THREE.BufferGeometry(); for (const [k, [a, n]] of Object.entries(attrs)) g.setAttribute(k, new THREE.BufferAttribute(a, n)); if (idx) g.setIndex(new THREE.BufferAttribute(idx, 1)); g.computeBoundingSphere(); own.push(g); return g; };
   const ground = new THREE.Mesh(geo({ position: [d.ground.pos, 3], color: [d.ground.col, 3], normal: [d.ground.nrm, 3] }, d.ground.idx), K._ground); ground.receiveShadow = true; group.add(ground);
   for (const b of d.borders) { const g = geo({ position: [b.pos, 3], color: [b.col, 3] }, b.idx); g.computeVertexNormals(); group.add(new THREE.Mesh(g, K._border)); }
-  for (const w of d.water) group.add(new THREE.Mesh(geo({ position: [w.pos, 3] }, w.idx), K._water));
-  if (d.pond) { const p = new THREE.Mesh(K._circle, K._pond); p.rotation.set(-Math.PI / 2, 0, -d.pond.yaw); p.scale.set(d.pond.rx * 1.02, d.pond.rz * 1.02, 1); p.position.set(d.pond.x, d.pond.y, d.pond.z); group.add(p); }
+  if (d.water) { const g = waterGeometry(d.water); own.push(g); const w = new THREE.Mesh(g, waterMaterial()); w.receiveShadow = true; group.add(w); }
   for (const [x, y, z] of d.stakes) { const s = new THREE.Mesh(K._stakeG, K._stake); s.position.set(x, y, z); s.castShadow = true; group.add(s); const f = new THREE.Mesh(K._flagG, K._flag); f.position.set(x + 0.24, y + 1.08, z); group.add(f); }
   for (const [key, L] of Object.entries(d.layers)) {
     const k = K[key]; if (!k || !L.n) continue;
