@@ -71,6 +71,8 @@ function drawMap(px, { labels = true } = {}) {
   const cv = document.createElement('canvas'); cv.width = cv.height = px;
   const g = cv.getContext('2d'), S = px / E.size, X = (x) => (x + H) * S, Z = (z) => (z + H) * S, est = generateEstate(), G = grids();
   const u = px / 1000, contourLabels = [];   // line weights and type scale with the map size
+  // text with a paper halo, so labels read over any colour
+  const halo = (text, x, y, font, fill, w = 3) => { g.font = font; g.lineJoin = 'round'; g.strokeStyle = 'rgba(244,238,220,0.85)'; g.lineWidth = w * u; g.strokeText(text, x, y); g.fillStyle = fill; g.fillText(text, x, y); };
   // 1. paper with a faint grain
   g.fillStyle = PAPER; g.fillRect(0, 0, px, px);
   // 2. land cover, hill-shaded, upscaled smoothly and softened so stand edges blend like watercolour
@@ -149,7 +151,6 @@ function drawMap(px, { labels = true } = {}) {
   g.save(); g.strokeStyle = 'rgba(74,63,48,0.28)'; g.lineWidth = 0.8 * u; g.setLineDash([1.5 * u, 4 * u]); g.lineCap = 'round';
   for (let k = 1; k < 8; k++) { const v = k * E.compartment * S; g.beginPath(); g.moveTo(v, 0); g.lineTo(v, px); g.moveTo(0, v); g.lineTo(px, v); g.stroke(); }
   g.restore();
-  const halo = (text, x, y, font, fill, w = 3) => { g.font = font; g.lineJoin = 'round'; g.strokeStyle = 'rgba(244,238,220,0.85)'; g.lineWidth = w * u; g.strokeText(text, x, y); g.fillStyle = fill; g.fillText(text, x, y); };
   if (labels) {
     g.textBaseline = 'top'; for (const c of est.compartments) halo(c.id, X(c.x - E.compartment / 2) + 6 * u, Z(c.z - E.compartment / 2) + 6 * u, `600 ${Math.round(11 * u)}px ${SANS}`, 'rgba(74,63,48,0.62)', 2.4);
     g.textAlign = 'center'; g.textBaseline = 'middle';
