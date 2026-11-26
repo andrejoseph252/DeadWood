@@ -5,10 +5,12 @@
 import E from '../data/estate.json' with { type: 'json' };
 import { generateEstate, coverAt, height, COVERS, compOf, compName } from '../estate/index.js';
 import { BESPOKE } from '../estate/tile-plan.js';
-import { BROOKS, pondW } from '../estate/terrain.js';
+import { BROOKS, pondW, POND } from '../estate/terrain.js';
+import { COVER_IDS } from '../estate/index.js';
 
 // Map palette: soft natural tints (a hand-coloured survey map), laid over warm paper
-const INK = { ancient: '#7c9a5c', mixedSouth: '#8aa266', spruce1962: '#4f6e5c', spruce1985: '#5c7b66', calamity: '#cdbd86', snags: '#bdb39b', ravine: '#6f9a80', coppice: '#9cb066', crag: '#c4b9a2', alderCarr: '#7aa294', pond: '#7fb0c8', meadow: '#d3d892', orchard: '#b8c87e', farmstead: '#dcc79c', quarry: '#d2c6ab', plot01: '#8aa266' };
+// distinct, readable tints per stand type (broadleaf greens, conifer blue-greens, open ground in warm yellows and buffs)
+const INK = { ancient: '#6f9a4a', mixedSouth: '#93ad5a', spruce1962: '#3f6e5e', spruce1985: '#5a8a74', calamity: '#d9b866', snags: '#b8a98c', ravine: '#4f9a86', coppice: '#a8b84e', crag: '#c8b89a', alderCarr: '#6aa8a0', pond: '#6fb0d4', meadow: '#dfe08a', orchard: '#c2d27a', farmstead: '#e6c890', quarry: '#d8c8a8', plot01: '#e08a4a' };
 const CROWN = { spruce: '#2f4a3c', pine: '#3e5a3a', beech: '#4a6a34', oak: '#55703a', holly: '#2c4426', hornbeam: '#5a7a3a', sycamore: '#4e7034', ash: '#62803e', lime: '#557636', alder: '#3e5e42', birch: '#8a9a62', rowan: '#6a8a3e', goatWillow: '#7a8a52', apple: '#6e8e3e', pear: '#62803a' };
 const PAPER = '#efe6cf', INKLINE = '#4a3f30', H = E.size / 2, N = 250, CELL = E.size / N;
 const SERIF = 'ui-serif, "New York", Georgia, "Iowan Old Style", serif', SANS = '-apple-system, "SF Pro Text", Inter, system-ui, sans-serif';
@@ -23,7 +25,10 @@ function grids() {
   const rgb = (c) => [1, 3, 5].map((k) => parseInt(c.slice(k, k + 2), 16));
   for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) { const x = -H + i * CELL, z = -H + j * CELL; hs[j * (N + 1) + i] = height(x, z); pond[j * (N + 1) + i] = pondW(x, z); }
   for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const c = rgb(INK[coverAt(-H + (i + 0.5) * CELL, -H + (j + 0.5) * CELL)] || '#999999'); col.set(c, (j * N + i) * 3); }
-  GRID = { hs, col, pond };
+  // indicator field per cover type on the corner grid (1 inside), for tracing stand outlines
+  const ids = new Int8Array((N + 1) * (N + 1)); for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) ids[j * (N + 1) + i] = COVER_IDS.indexOf(coverAt(-H + i * CELL, -H + j * CELL));
+  const ind = []; for (const id of COVER_IDS) { if (id === 'plot01' || id === 'pond') continue; const k = COVER_IDS.indexOf(id), f = new Float32Array(ids.length); let any = false; for (let q = 0; q < ids.length; q++) if (ids[q] === k) { f[q] = 1; any = true; } if (any) ind.push([id, f]); }
+  GRID = { hs, col, pond, ind };
   return GRID;
 }
 
@@ -58,13 +63,14 @@ function smoothPath(g, pts, f, closed = false) {
   for (let k = closed ? 0 : 1; k < P.length - (closed ? 0 : 1); k++) { const a = P[k], b = P[(k + 1) % P.length]; g.quadraticCurveTo(a[0], a[1], ...mid(a, b)); }
   if (!closed) g.lineTo(...P[P.length - 1]); else g.closePath();
 }
-const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+const shadeHex = (h, k) => '#' + [1, 3, 5].map((q) => Math.round(parseInt(h.slice(q, q + 2), 16) * k).toString(16).padStart(2, '0')).join('');
 
 // draw the map into a canvas of size px (square); returns the canvas
 function drawMap(px, { labels = true } = {}) {
   const cv = document.createElement('canvas'); cv.width = cv.height = px;
   const g = cv.getContext('2d'), S = px / E.size, X = (x) => (x + H) * S, Z = (z) => (z + H) * S, est = generateEstate(), G = grids();
-  const u = px / 1000;   // line weights and type scale with the map size
+  const u = px / 1000, contourLabels = [];   // line weights and type scale with the map size
   // 1. paper with a faint grain
   g.fillStyle = PAPER; g.fillRect(0, 0, px, px);
   // 2. land cover, hill-shaded, upscaled smoothly and softened so stand edges blend like watercolour
@@ -73,18 +79,20 @@ function drawMap(px, { labels = true } = {}) {
   for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
     const k = (j * N + i) * 3, dx = hAt(i + 1, j) - hAt(Math.max(0, i - 1), j), dz = hAt(i, j + 1) - hAt(i, Math.max(0, j - 1));
     const shade = Math.max(0.74, Math.min(1.16, 1 + (-dx - dz) * 0.09)), q = (j * N + i) * 4;   // light from the north-west
-    for (let c = 0; c < 3; c++) img.data[q + c] = (G.col[k + c] * 0.82 + 239 * 0.18) * shade;
+    for (let c = 0; c < 3; c++) img.data[q + c] = (G.col[k + c] * 0.92 + 239 * 0.08) * shade;
     img.data[q + 3] = 255;
   }
   tg.putImageData(img, 0, 0);
-  g.save(); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.filter = `blur(${Math.max(1, 2.2 * u)}px)`; g.drawImage(tint, -4 * u, -4 * u, px + 8 * u, px + 8 * u); g.restore();
+  g.save(); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.filter = `blur(${Math.max(0.6, 0.9 * u)}px)`; g.drawImage(tint, -1 * u, -1 * u, px + 2 * u, px + 2 * u); g.restore();
+  // 2b. a fine outline where one stand type meets another, traced from the cover grid and smoothed
+  if (px >= 600) { g.save(); g.lineJoin = g.lineCap = 'round'; for (const [id, f] of G.ind) { g.strokeStyle = shadeHex(INK[id] || '#888888', 0.62); g.globalAlpha = 0.8; g.lineWidth = 1.1 * u; for (const line of isolines(f, N, 0.5)) { if (line.length < 5) continue; g.beginPath(); smoothPath(g, line, ([i, j]) => [i * CELL * S, j * CELL * S], line.length > 8 && dist(line[0], line[line.length - 1]) < 1.5); g.stroke(); } } g.restore(); }
   // 3. tree crowns as soft stipple: the texture of the forest itself, from the estate's tree records
   if (px >= 600) {
     g.save();
     for (const t of est.trees) {
       if (t.status === 'snag') { g.fillStyle = 'rgba(235,228,210,0.85)'; g.fillRect(X(t.x) - 0.6 * u, Z(t.z) - 0.6 * u, 1.2 * u, 1.2 * u); continue; }
       const r = Math.max(0.7, Math.min(3.4, (t.kind === 'spruce' || t.kind === 'pine' ? 0.6 + t.dbh * 0.03 : 1 + t.dbh * 0.05))) * S * 0.9;
-      g.globalAlpha = 0.34; g.fillStyle = CROWN[t.kind] || '#4a6a34'; g.beginPath(); g.arc(X(t.x), Z(t.z), r, 0, 6.283); g.fill();
+      g.globalAlpha = 0.2; g.fillStyle = CROWN[t.kind] || '#4a6a34'; g.beginPath(); g.arc(X(t.x), Z(t.z), r, 0, 6.283); g.fill();
     }
     g.restore();
   } else {   // minimap: a light grain instead of 38k crowns
@@ -94,8 +102,12 @@ function drawMap(px, { labels = true } = {}) {
   g.save(); g.lineJoin = g.lineCap = 'round';
   let lo = Infinity, hi = -Infinity; for (const v of G.hs) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
   for (let lv = Math.ceil(lo / 5) * 5; lv < hi; lv += 5) {
-    const major = lv % 25 === 0; g.strokeStyle = major ? 'rgba(92,66,40,0.42)' : 'rgba(92,66,40,0.2)'; g.lineWidth = (major ? 1.1 : 0.6) * u * (px < 600 ? 1.2 : 1);
-    for (const line of isolines(G.hs, N, lv)) { if (line.length < 4) continue; g.beginPath(); smoothPath(g, line, ([i, j]) => [i * CELL * S, j * CELL * S]); g.stroke(); }
+    const major = lv % 25 === 0; g.strokeStyle = major ? 'rgba(96,62,30,0.72)' : 'rgba(96,62,30,0.36)'; g.lineWidth = (major ? 1.7 : 0.85) * u * (px < 600 ? 1.15 : 1);
+    for (const line of isolines(G.hs, N, lv)) {
+      if (line.length < 4) continue; const f = ([i, j]) => [i * CELL * S, j * CELL * S];
+      g.beginPath(); smoothPath(g, line, f); g.stroke();
+      if (major && labels && line.length > 60) contourLabels.push({ lv, at: f(line[Math.floor(line.length * 0.37)]), next: f(line[Math.floor(line.length * 0.37) + 2]) });
+    }
   }
   g.restore();
   // 5. water: the pond's real shoreline (traced from the terrain), brooks as smooth tapering curves
@@ -118,6 +130,21 @@ function drawMap(px, { labels = true } = {}) {
   g.save(); g.strokeStyle = 'rgba(40,32,24,0.75)'; g.fillStyle = 'rgba(40,32,24,0.35)'; g.lineWidth = 1 * u;
   for (const [x, z] of est.charcoal) { g.beginPath(); g.arc(X(x), Z(z), Math.max(1.4, 4.5 * S), 0, 6.283); g.fill(); g.stroke(); }
   g.restore();
+  // 7b. labels along the land: index-contour heights (rotated with the line), spot heights, brook and road names
+  if (labels) {
+    g.save(); g.textAlign = 'center'; g.textBaseline = 'middle';
+    for (const { lv, at, next } of contourLabels) { let a = Math.atan2(next[1] - at[1], next[0] - at[0]); if (a > Math.PI / 2 || a < -Math.PI / 2) a += Math.PI;
+      g.save(); g.translate(at[0], at[1]); g.rotate(a); g.font = `600 ${Math.round(10 * u)}px ${SANS}`; g.fillStyle = PAPER; g.fillRect(-15 * u, -6 * u, 30 * u, 12 * u); g.fillStyle = 'rgba(96,62,30,0.95)'; g.fillText(`${lv}`, 0, 0.5 * u); g.restore(); }
+    let top = { h: -Infinity }; for (let j = 0; j <= N; j += 2) for (let i = 0; i <= N; i += 2) { const h = G.hs[j * (N + 1) + i]; if (h > top.h) top = { h, i, j }; }
+    const spot = (x, y, text) => { g.fillStyle = INKLINE; g.beginPath(); g.moveTo(x, y - 4 * u); g.lineTo(x + 3.6 * u, y + 2.6 * u); g.lineTo(x - 3.6 * u, y + 2.6 * u); g.closePath(); g.fill(); halo(text, x + 26 * u, y, `600 ${Math.round(11 * u)}px ${SANS}`, INKLINE, 3); };
+    spot(top.i * CELL * S, top.j * CELL * S, `${Math.round(top.h)} m`);
+    { const [px0, pz0] = E.pond.centre; spot(X(px0) - 24 * u, Z(pz0) + 26 * u, `${Math.round(POND.level)} m`); }
+    const along = (pts, text, frac, size, fill) => { const n = pts.length, k = Math.min(n - 2, Math.max(0, Math.floor(n * frac))), a0 = pts[k], a1 = pts[k + 1]; let a = Math.atan2(Z(a1[1]) - Z(a0[1]), X(a1[0]) - X(a0[0])); if (a > Math.PI / 2 || a < -Math.PI / 2) a += Math.PI;
+      g.save(); g.translate(X(a0[0]), Z(a0[1])); g.rotate(a); halo(text, 0, -9 * u, `italic 500 ${Math.round(size * u)}px ${SERIF}`, fill, 3.2); g.restore(); };
+    along(E.brooks.main.points, 'Mühlbach', 0.28, 14, '#2e6a8e'); along(E.brooks.gorge.points, 'Klingenbach', 0.4, 12, '#2e6a8e'); along(E.brooks.eastSpring.points, 'Quellbach', 0.35, 12, '#2e6a8e');
+    along(E.roads.north, 'forest road', 0.52, 11.5, 'rgba(110,84,50,0.95)');
+    g.restore();
+  }
   // 8. compartment grid: faint dotted lines; labels in small caps
   g.save(); g.strokeStyle = 'rgba(74,63,48,0.28)'; g.lineWidth = 0.8 * u; g.setLineDash([1.5 * u, 4 * u]); g.lineCap = 'round';
   for (let k = 1; k < 8; k++) { const v = k * E.compartment * S; g.beginPath(); g.moveTo(v, 0); g.lineTo(v, px); g.moveTo(0, v); g.lineTo(px, v); g.stroke(); }
@@ -158,6 +185,13 @@ function drawMap(px, { labels = true } = {}) {
   return cv;
 }
 
+function legendHTML() {
+  const groups = [['Woodland', ['ancient', 'mixedSouth', 'coppice', 'ravine', 'alderCarr']], ['Conifers', ['spruce1962', 'spruce1985']], ['Open ground', ['calamity', 'snags', 'meadow', 'orchard', 'crag', 'quarry', 'farmstead']]];
+  return `<div class="eyebrow">Estate map</div><h2>1 × 1 km · 100 ha</h2><p class="muted">Hover a compartment to read it. Click anywhere to go there. M or Esc closes.</p>` +
+    groups.map(([t, ids]) => `<div class="eyebrow" style="margin-top:12px">${t}</div><ul>${ids.map((k) => `<li><i style="background:${INK[k]}"></i>${COVERS[k].name}</li>`).join('')}</ul>`).join('') +
+    `<div class="eyebrow" style="margin-top:12px">Symbols</div><ul><li><i style="background:#4e88a8;height:3px;border-radius:2px"></i>Brook</li><li><i style="background:#f6eed8;border:1px solid #6e583a"></i>Forest road</li><li><i style="background:rgba(40,32,24,.5);border-radius:50%;border:1px solid #28201a"></i>Charcoal platform</li><li><i style="background:none;border-top:2px solid rgba(96,62,30,.7)"></i>Contour, 5 m (labelled every 25 m)</li><li><i style="background:#e8743c;border-radius:2px 6px 6px 2px"></i>To be hand-made</li></ul>`;
+}
+
 // view: () => ({ x, z, dx, dz, w, d }) the camera target, the direction it looks along the ground, and the view's
 // ground footprint (width across, depth along); onJump(x, z)
 export function createEstateMap({ view, onJump }) {
@@ -185,7 +219,7 @@ export function createEstateMap({ view, onJump }) {
   document.head.append(Object.assign(document.createElement('style'), { textContent: css }));
   const mini = document.createElement('div'); mini.className = 'mini'; mini.title = 'Tap to go there · M opens the map'; mini.innerHTML = '<span class="north">N</span>';
   const full = document.createElement('div'); full.className = 'mapfull'; full.setAttribute('role', 'dialog'); full.setAttribute('aria-label', 'Estate map');
-  full.innerHTML = '<div class="sheet"></div><div class="info"><div class="eyebrow">Estate map</div><h2>1 × 1 km</h2><p class="muted">Hover a compartment to read it. Click anywhere to go there. M or Esc closes.</p></div>';
+  full.innerHTML = `<div class="sheet"></div><div class="info">${legendHTML()}</div>`;
   const sheet = full.querySelector('.sheet'), info = full.querySelector('.info'), closeBtn = Object.assign(document.createElement('button'), { className: 'close', innerHTML: '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>' }); closeBtn.setAttribute('aria-label', 'Close map');
   sheet.append(closeBtn);
   document.body.append(mini, full);
@@ -201,7 +235,9 @@ export function createEstateMap({ view, onJump }) {
   mini.addEventListener('click', (e) => onJump(...toWorld(mini, e)));
   sheet.addEventListener('click', (e) => { if (e.target === closeBtn) return; onJump(...toWorld(sheet, e)); close(); });
   closeBtn.addEventListener('click', () => close());
-  sheet.addEventListener('mousemove', (e) => showInfo(...toWorld(sheet, e)));
+  let hover = null;   // the compartment under the pointer, outlined on the full map
+  sheet.addEventListener('mousemove', (e) => { const [x, z] = toWorld(sheet, e); hover = compOf(x, z); showInfo(x, z); update(); });
+  sheet.addEventListener('mouseleave', () => { hover = null; info.innerHTML = legendHTML(); update(); });
   addEventListener('keydown', (e) => { if (e.key === 'm' || e.key === 'M') toggle(); else if (e.key === 'Escape') close(); });
 
   function showInfo(x, z) {
@@ -219,6 +255,7 @@ export function createEstateMap({ view, onJump }) {
   // where you are: a soft view cone in the direction the camera looks, the view's footprint as a rounded glow, a dot
   function drawMarker(cv) {
     const g = cv.getContext('2d'), s = cv.width / E.size, v = view(), u = cv.width / 1000; g.clearRect(0, 0, cv.width, cv.height);
+    if (cv === fullOver && hover) { const C2 = E.compartment * s, inset = 3 * u; g.fillStyle = 'rgba(255,248,225,0.22)'; g.strokeStyle = 'rgba(255,255,255,0.95)'; g.lineWidth = 2.4 * u; g.beginPath(); g.roundRect(hover[0] * C2 + inset, hover[1] * C2 + inset, C2 - 2 * inset, C2 - 2 * inset, 14 * u); g.fill(); g.stroke(); }
     const X = (v.x + H) * s, Z = (v.z + H) * s, w = v.w * s, d = v.d * s;
     g.save(); g.translate(X, Z); g.rotate(Math.atan2(v.dx, -v.dz));
     g.fillStyle = 'rgba(255,255,255,0.16)'; g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = 1.6 * u;
