@@ -1,25 +1,11 @@
 // Plot 01: a 40 m square of Central European forest around a sunlit gap, rendered as pixel art from a real 3D scene.
 // 1 unit = 1 m. This file wires the pieces together; see CLAUDE.md for the module map.
-import { createRng } from './core/random.js';
 import { HALF, height } from './world/plot.js';
 import { createPipeline } from './render/pipeline.js';
 import { createCameraRig } from './render/camera.js';
 import { addLights } from './render/lights.js';
-import { createTextures } from './render/textures.js';
-import { createInstancing } from './render/instancing.js';
 import { uTime } from './render/wind.js';
-import { buildGround } from './world/ground.js';
-import { buildDeadWood, buildAntMound } from './world/props.js';
-import { buildFeatures } from './world/features.js';
-import { buildResearchKit } from './world/kit.js';
-import { buildLitter, buildMoss } from './flora/litter.js';
-import { buildGrass } from './flora/grass.js';
-import { buildFlowers, buildTallHerbs, buildFerns } from './flora/herbs.js';
-import { buildTrees, buildSaplings, buildFoliage } from './flora/trees.js';
-import { buildShrubs, buildHedge } from './flora/shrubs.js';
-import { buildFungi } from './flora/fungi.js';
-import { buildDetails } from './flora/details.js';
-import { createFauna } from './fauna/index.js';
+import { buildPlot } from './world/build-plot.js';
 import { createKeys } from './ui/input.js';
 import { bindToolbar } from './ui/toolbar.js';
 
@@ -34,36 +20,11 @@ const keys = createKeys();
 const rig = createCameraRig(pipeline.renderer.domElement, { half: HALF, keys });
 addLights(scene, { lite, half: HALF });
 
-// ---------- build the scene ----------
-// Every builder draws from one seeded stream. KEEP THIS ORDER: moving a call (or adding random draws to one)
-// re-seeds everything after it, and the plot no longer regenerates identically.
+// ---------- build the scene (world/build-plot.js) ----------
 // ?seed=N regenerates the plot from another seed (an integer from 1 to 2147483646; anything else falls back to 9).
 const seedParam = Number(params.get('seed'));
 const seed = Number.isInteger(seedParam) && seedParam >= 1 && seedParam < 2147483647 ? seedParam : 9;
-const rng = createRng(seed);
-const tex = createTextures(rng);
-const ctx = { scene, rng, tex, lite, debug: params.get('debug'), ...createInstancing(scene) };   // ?debug=habitats colours the ground by zone
-const clumps = { leaf: [], needle: [], low: [], lowNeedle: [] };   // tree crowns, and shrub / sapling foliage
-buildGround(ctx);
-buildLitter(ctx);
-buildGrass(ctx);
-buildFlowers(ctx);
-buildTrees(ctx, clumps);
-buildSaplings(ctx, clumps);
-buildShrubs(ctx, clumps);
-const hedgeNettles = buildHedge(ctx, clumps);
-const crowns = buildFoliage(ctx, clumps);
-const herbs = buildTallHerbs(ctx, hedgeNettles);
-buildFerns(ctx);
-buildMoss(ctx);
-buildDeadWood(ctx);
-buildAntMound(ctx);
-buildFeatures(ctx);
-buildDetails(ctx);
-ctx.sprites(ctx.tex.dot, [...herbs.webs, ...herbs.larvae]);   // peacock caterpillar tents on the nettles
-buildFungi(ctx);
-buildResearchKit(ctx);
-const fauna = createFauna(ctx, { foxgloves: herbs.foxgloves });
+const { crowns, fauna } = buildPlot(scene, { seed, lite, debug: params.get('debug') });   // ?debug=habitats colours the ground by zone
 window.__rigs = fauna.rigs;   // debugging handle (tools/scene-fingerprint.js uses it)
 window.__seed = seed;
 

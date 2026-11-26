@@ -23,7 +23,7 @@ A forest ecology game with an academic feel. The player directs a small field st
 - The viewpoint list lives in `tools/screens.cjs`. Add viewpoints as the world grows; don't change existing ones.
 
 ## Module map (`src/`)
-- `main.js` — wires everything together and runs the builders **in a fixed order** (see below).
+- `main.js` — the plot page: pipeline, camera, lights, toolbar, loop. The scene itself comes from `world/build-plot.js`, which runs the builders **in a fixed order** (see below) into any target (the plot page's scene, or a group in the estate).
 - `core/` — seeded random (`random.js`) and noise (`noise.js`). Pure.
 - `world/fields.js` — ground fields of the map (`height`, `habitatW`, `streamD`, `wallX`, `outcropW`, `pathW`, `gapW`…). Pure.
 - `world/layout.js` — the seeded tree layout (records with ids) from the habitat rules. Pure; uses its own random stream (`map.layoutSeed`), so builder changes don't move the forest.
@@ -42,7 +42,7 @@ A forest ecology game with an academic feel. The player directs a small field st
 
 **Headless boundary:** `sim/`, `estate/`, `world/plot.js` (with `fields.js` and `layout.js`) and `core/` must not import three.js or any package. `test/boundaries.test.js` walks their import graphs and fails if they do.
 
-**Seeded build order:** every builder draws from one shared random stream. Reordering builders in `main.js`, or adding or removing random draws in one, moves everything built after it. That's fine when intended, but a pure refactor should leave the scene identical. To check: `npm run screens` prints the scene fingerprint (`tools/scene-fingerprint.js`: a hash of every static mesh's geometry, transform, material and instance data, skipping animal rigs; you can also paste it into the browser console). Compare before and after.
+**Seeded build order:** every builder draws from one shared random stream. Reordering builders in `world/build-plot.js`, or adding or removing random draws in one, moves everything built after it. That's fine when intended, but a pure refactor should leave the scene identical. To check: `npm run screens` prints the scene fingerprint (`tools/scene-fingerprint.js`: a hash of every static mesh's geometry, transform, material and instance data, skipping animal rigs; you can also paste it into the browser console). Compare before and after.
 
 ## Debug URL parameters
 `?seed=N` · `?still` (freeze time) · `?canopy=off` (hide tree crowns) · `?debug=habitats` (colour the ground by habitat) · `?pix=N` · `?zoom=N` · `?look=x,z` · `?lite`
