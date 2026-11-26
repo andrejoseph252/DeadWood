@@ -1,0 +1,71 @@
+// The estate view (world.md section 12, E3): the 1 km² forest block around Plot 01, streamed tile by tile at the
+// plot's aesthetic. ?at=x,z starts somewhere else; ?still freezes time; ?canopy=off hides the crowns.
+import * as THREE from 'three';
+import { createPipeline } from './render/pipeline.js';
+import { createCameraRig } from './render/camera.js';
+import { addLights } from './render/lights.js';
+import { createTextures } from './render/textures.js';
+import { uTime } from './render/wind.js';
+import { createRng } from './core/random.js';
+import { createKeys } from './ui/input.js';
+import { createStreamer } from './estate-render/stream.js';
+import { Y0 } from './estate-render/tile.js';
+import { BESPOKE } from './estate/tile-plan.js';
+import { generateEstate, coverAt, height, COVERS, compOf, compName } from './estate/index.js';
+
+const params = new URLSearchParams(location.search), still = params.has('still');
+const container = document.getElementById('app');
+const pipeline = createPipeline(container), { scene } = pipeline;
+const keys = createKeys();
+const HOME = 0.42;   // the plot's overview zoom: one pixel ~15-20 cm, a screen ~60-100 m
+const rig = createCameraRig(pipeline.renderer.domElement, { half: 470, keys, overview: HOME });
+const { sun } = addLights(scene, { lite: false, half: 45 });   // a shadow box that follows the camera
+generateEstate();
+
+const shared = { tex: createTextures(createRng(9)), canopy: params.get('canopy') !== 'off' };
+const streamer = createStreamer(scene, shared);
+const yAt = (x, z) => height(x, z) - Y0;
+const goto = (x, z, zoom = HOME) => { rig.lookAt(x, yAt(x, z) + 0.4, z); rig.camera.zoom = zoom; rig.camera.updateProjectionMatrix(); };
+const [sx, sz] = (params.get('at') || '-40,20').split(',').map(Number);
+goto(sx, sz);
+// build the tiles around the start before the first frame
+while (streamer.update(sx, sz, 99) > 0);
+
+// ---------- toolbar and the label ----------
+const tag = document.querySelector('.tag'), label = { b: tag.querySelector('b'), span: tag.querySelector('span') };
+let lastKey = '';
+function updateLabel() {
+  const t = rig.controls.target, cover = coverAt(t.x, t.z), [ci, cj] = compOf(t.x, t.z), key = `${ci},${cj},${cover}`;
+  if (key === lastKey) return; lastKey = key;
+  label.b.textContent = `Estate · compartment ${compName(ci, cj)} · ${COVERS[cover].name}`;
+  label.span.textContent = BESPOKE[cover] ? `Flagged: ${BESPOKE[cover]} gets its own hand-made tile later` : COVERS[cover].history;
+}
+document.querySelector('[data-view]')?.addEventListener('click', () => { rig.camera.zoom = HOME; rig.camera.updateProjectionMatrix(); });
+document.querySelectorAll('[data-rot]').forEach((b) => b.addEventListener('click', () => rig.rotateBy(+b.dataset.rot)));
+const canopyBtn = document.querySelector('[data-canopy]');
+canopyBtn?.setAttribute('aria-pressed', String(shared.canopy));
+canopyBtn?.addEventListener('click', () => { const on = canopyBtn.getAttribute('aria-pressed') !== 'true'; canopyBtn.setAttribute('aria-pressed', String(on)); streamer.setCanopy(on); });
+const go = document.querySelector('[data-goto]');
+go?.addEventListener('change', () => { if (!go.value) return; const [x, z] = go.value.split(',').map(Number); goto(x, z); go.value = ''; });
+window.__view = (x, z, zoom, canopy = true) => { goto(x, z, zoom ?? HOME); streamer.setCanopy(canopy); while (streamer.update(x, z, 99) > 0); };   // screenshot hook
+window.__estate = { streamer, rig };
+
+// ---------- size and loop ----------
+function resize() {
+  const w = container.clientWidth, h = container.clientHeight;
+  pipeline.setSize(w, h, Math.max(2, Math.round(h / 420)), rig.camera); rig.setAspect(w / h); rig.camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(container); resize();
+const sunDir = sun.position.clone().normalize();
+let last = performance.now(), elapsed = 0;
+pipeline.renderer.setAnimationLoop((now) => {
+  const dt = still ? 0 : Math.max(0, Math.min((now - last) / 1000, 0.05)); last = now; elapsed += dt;
+  uTime.value = elapsed;
+  rig.update(dt);
+  const t = rig.controls.target, sx2 = Math.round(t.x), sz2 = Math.round(t.z);   // the shadow box follows, snapped to whole metres
+  sun.target.position.set(sx2, t.y, sz2); sun.position.set(sx2, t.y, sz2).addScaledVector(sunDir, 80); sun.target.updateMatrixWorld();
+  streamer.update(t.x, t.z, 1);
+  updateLabel();
+  pipeline.render(rig.camera);
+});
+document.body.classList.add('ready');

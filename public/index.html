@@ -27,6 +27,9 @@ html,body{height:100%;margin:0;background:#17241a;overflow:hidden;font-family:"P
 .bar button:hover{border-color:#d8c99a}.bar button:focus-visible{outline:2px solid #ffd76a;outline-offset:2px}
 .bar button[aria-pressed=true]{background:#d8c99a;color:#17241a;border-color:#d8c99a}
 .bar .sep{width:6px}
+.bar a.btn{font:inherit;font-size:15px;color:#efe9d8;background:rgba(14,20,14,.82);border:2px solid #6f7a5a;padding:7px 11px 8px;min-height:40px;box-shadow:3px 3px 0 rgba(0,0,0,.35);text-decoration:none;display:inline-flex;align-items:center}
+.bar a.btn:hover{border-color:#d8c99a}
+
 .bar select{font:inherit;font-size:15px;color:#efe9d8;background:rgba(14,20,14,.82);border:2px solid #6f7a5a;padding:7px 8px 8px;min-height:40px;box-shadow:3px 3px 0 rgba(0,0,0,.35);cursor:pointer}
 .bar select:hover{border-color:#d8c99a}.bar select:focus-visible{outline:2px solid #ffd76a;outline-offset:2px}
 @media (max-width:600px){.bar{bottom:40px}.bar button,.bar select{font-size:13px;padding:6px 8px}.hint{font-size:12px}}
@@ -43,6 +46,7 @@ html,body{height:100%;margin:0;background:#17241a;overflow:hidden;font-family:"P
   <button data-rot="1" aria-label="Rotate right">⟳</button>
   <span class="sep"></span>
   <button data-canopy aria-pressed="true" title="Show or hide the tree crowns">Canopy</button>
+  <a class="btn" href="estate.html">Estate</a>
   <select data-goto aria-label="Go to a habitat">
     <option value="">Go to…</option>
     <option value="0.5,1,1.6">Canopy gap</option>

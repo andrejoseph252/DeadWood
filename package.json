@@ -5,7 +5,7 @@
   "description": "Forest ecology field-station game: a 28 m plot rendered as 3D pixel art",
   "scripts": {
     "dev": "esbuild src/main.js --bundle --outfile=public/main.js --servedir=public --watch",
-    "build": "esbuild src/main.js --bundle --minify --outfile=public/main.js",
+    "build": "esbuild src/main.js --bundle --minify --outfile=public/main.js && esbuild src/estate-main.js --bundle --minify --outfile=public/estate.js",
     "test": "node --test \"test/*.test.js\"",
     "screens": "node tools/screens.cjs"
   },

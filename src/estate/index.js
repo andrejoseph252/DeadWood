@@ -61,7 +61,7 @@ export function generateEstate() {
     for (let k = 0, tries = 0; k < n && tries < n * 6; tries++) {
       const x = p.x + rr(-0.5, 0.5) * E.patch, z = p.z + rr(-0.5, 0.5) * E.patch; if (!okSpot(x, z, p.cover)) continue;
       const kind = pick(S.mix), u = rnd();
-      const dbh = S.shape === 'reverseJ' ? S.dbh[0] + (S.dbh[1] - S.dbh[0]) * u ** 3.2 : S.dbh[0] + (S.dbh[1] - S.dbh[0]) * (0.5 + (u - 0.5) * 0.8);
+      const dbh = S.shape === 'reverseJ' ? S.dbh[0] + (S.dbh[1] - S.dbh[0]) * u ** 2.2 : S.dbh[0] + (S.dbh[1] - S.dbh[0]) * (0.5 + (u - 0.5) * 0.8);
       const age = S.shape === 'reverseJ' ? Math.round(S.age[0] + (S.age[1] - S.age[0]) * (dbh - S.dbh[0]) / (S.dbh[1] - S.dbh[0])) : Math.round(rr(S.age[0], S.age[1]));
       add(p, { kind, x, z, dbh: +dbh.toFixed(1), age, status: 'alive' }); k++;
     }

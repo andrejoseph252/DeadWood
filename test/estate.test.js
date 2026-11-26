@@ -50,3 +50,11 @@ test('charcoal platforms: in the ancient wood, spaced apart', () => {
   assert.equal(est.charcoal.length, E.charcoal.count);
   for (const [i, [x, z]] of est.charcoal.entries()) { assert.equal(coverAt(x, z), 'ancient'); for (const [x2, z2] of est.charcoal.slice(i + 1)) assert.ok(Math.hypot(x - x2, z - z2) >= E.charcoal.minSpacing); }
 });
+
+test('tile plans are deterministic, independent of build order, and flag the bespoke places', async () => {
+  const { planTile } = await import('../src/estate/tile-plan.js');
+  const a = JSON.stringify(planTile(5, 5)); planTile(12, 3); planTile(0, 0);
+  assert.equal(JSON.stringify(planTile(5, 5)), a);
+  assert.deepEqual(planTile(8, 8).bespoke, ['plot01']);
+  const far = planTile(5, 5, { near: false }); assert.equal(far.scatter.length, 0); assert.ok(far.trees.length > 0);
+});

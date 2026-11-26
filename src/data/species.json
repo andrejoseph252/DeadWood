@@ -296,6 +296,243 @@
       },
       "growth": null,
       "sources": []
+    },
+    "hornbeam": {
+      "scientific": "Carpinus betulus",
+      "common": "Hornbeam",
+      "render": {
+        "bark": "#7e8478",
+        "trunk": {
+          "r0": 0.3,
+          "r1": 0.16,
+          "heightFrac": 0.55,
+          "lean": 0.02
+        },
+        "crown": {
+          "clumps": 180,
+          "squash": 0.9,
+          "clumpScale": 0.85
+        },
+        "leaves": [
+          "#4a7a2e",
+          "#558634",
+          "#40702a",
+          "#5e8f38"
+        ],
+        "sapling": {
+          "conifer": false,
+          "stem": "#7e8478",
+          "leaves": [
+            "#4a7a2e",
+            "#558634"
+          ]
+        }
+      },
+      "growth": null,
+      "sources": [],
+      "_note": "estate: oak coppice-with-standards"
+    },
+    "lime": {
+      "scientific": "Tilia cordata",
+      "common": "Small-leaved lime",
+      "render": {
+        "bark": "#6e6a5e",
+        "trunk": {
+          "r0": 0.3,
+          "r1": 0.16,
+          "heightFrac": 0.55,
+          "lean": 0.02
+        },
+        "crown": {
+          "clumps": 180,
+          "squash": 0.9,
+          "clumpScale": 0.85
+        },
+        "leaves": [
+          "#4f7f30",
+          "#5a8c36",
+          "#46742a"
+        ],
+        "sapling": {
+          "conifer": false,
+          "stem": "#6e6a5e",
+          "leaves": [
+            "#4f7f30",
+            "#5a8c36"
+          ]
+        }
+      },
+      "growth": null,
+      "sources": []
+    },
+    "sycamore": {
+      "scientific": "Acer pseudoplatanus",
+      "common": "Sycamore",
+      "render": {
+        "bark": "#8a8478",
+        "trunk": {
+          "r0": 0.3,
+          "r1": 0.16,
+          "heightFrac": 0.55,
+          "lean": 0.02
+        },
+        "crown": {
+          "clumps": 180,
+          "squash": 0.9,
+          "clumpScale": 0.85
+        },
+        "leaves": [
+          "#4a7a2c",
+          "#568832",
+          "#406e28",
+          "#62923a"
+        ],
+        "sapling": {
+          "conifer": false,
+          "stem": "#8a8478",
+          "leaves": [
+            "#4a7a2c",
+            "#568832"
+          ]
+        }
+      },
+      "growth": null,
+      "sources": []
+    },
+    "pine": {
+      "scientific": "Pinus sylvestris",
+      "common": "Scots pine",
+      "render": {
+        "bark": "#a0603a",
+        "trunk": {
+          "r0": 0.3,
+          "r1": 0.16,
+          "heightFrac": 0.55,
+          "lean": 0.02
+        },
+        "crown": {
+          "clumps": 180,
+          "squash": 0.9,
+          "clumpScale": 0.85
+        },
+        "leaves": [
+          "#3a5a34",
+          "#44683a",
+          "#30502e"
+        ],
+        "sapling": {
+          "conifer": false,
+          "stem": "#a0603a",
+          "leaves": [
+            "#3a5a34",
+            "#44683a"
+          ]
+        }
+      },
+      "growth": null,
+      "sources": [],
+      "_note": "estate: crag crest; orange upper bark"
+    },
+    "goatWillow": {
+      "scientific": "Salix caprea",
+      "common": "Goat willow",
+      "render": {
+        "bark": "#7a7a6a",
+        "trunk": {
+          "r0": 0.3,
+          "r1": 0.16,
+          "heightFrac": 0.55,
+          "lean": 0.02
+        },
+        "crown": {
+          "clumps": 180,
+          "squash": 0.9,
+          "clumpScale": 0.85
+        },
+        "leaves": [
+          "#6a8a4a",
+          "#76965a",
+          "#5e7e44"
+        ],
+        "sapling": {
+          "conifer": false,
+          "stem": "#7a7a6a",
+          "leaves": [
+            "#6a8a4a",
+            "#76965a"
+          ]
+        }
+      },
+      "growth": null,
+      "sources": []
+    },
+    "apple": {
+      "scientific": "Malus domestica",
+      "common": "Orchard apple",
+      "render": {
+        "bark": "#5e4a38",
+        "trunk": {
+          "r0": 0.3,
+          "r1": 0.16,
+          "heightFrac": 0.55,
+          "lean": 0.02
+        },
+        "crown": {
+          "clumps": 180,
+          "squash": 0.9,
+          "clumpScale": 0.85
+        },
+        "leaves": [
+          "#5a8a34",
+          "#64963a",
+          "#4e7e2e"
+        ],
+        "sapling": {
+          "conifer": false,
+          "stem": "#5e4a38",
+          "leaves": [
+            "#5a8a34",
+            "#64963a"
+          ]
+        }
+      },
+      "growth": null,
+      "sources": [],
+      "_note": "estate: old orchard, planted c. 1900"
+    },
+    "pear": {
+      "scientific": "Pyrus communis",
+      "common": "Orchard pear",
+      "render": {
+        "bark": "#4e4034",
+        "trunk": {
+          "r0": 0.3,
+          "r1": 0.16,
+          "heightFrac": 0.55,
+          "lean": 0.02
+        },
+        "crown": {
+          "clumps": 180,
+          "squash": 0.9,
+          "clumpScale": 0.85
+        },
+        "leaves": [
+          "#4e7e30",
+          "#588a36",
+          "#466e2a"
+        ],
+        "sapling": {
+          "conifer": false,
+          "stem": "#4e4034",
+          "leaves": [
+            "#4e7e30",
+            "#588a36"
+          ]
+        }
+      },
+      "growth": null,
+      "sources": [],
+      "_note": "estate: old orchard, planted c. 1900"
     }
   },
   "groundLayer": {

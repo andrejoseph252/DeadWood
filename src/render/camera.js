@@ -7,9 +7,9 @@ const damp = (a, b, k, dt) => a + (b - a) * (1 - Math.exp(-k * dt));
 const startOffset = () => new THREE.Vector3().setFromSphericalCoords(90, THREE.MathUtils.degToRad(52), THREE.MathUtils.degToRad(35));
 
 // half: half the plot width (the target is kept inside the plot); keys: a Set of pressed keys (lower case)
-export function createCameraRig(domElement, { half, keys }) {
+export function createCameraRig(domElement, { half, keys, overview }) {
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 300);
-  const OVERVIEW = 12.4 / half;   // the view was framed for a 28 m plot; zoom out to fit this one
+  const OVERVIEW = overview ?? 12.4 / half;   // the view was framed for a 28 m plot; zoom out to fit this one (or a given home zoom)
   camera.position.copy(startOffset()); camera.zoom = OVERVIEW;
   const controls = new MapControls(camera, domElement);
   controls.target.set(0, 0.5, 0);

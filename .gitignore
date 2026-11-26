@@ -4,3 +4,4 @@ public/main.js
 
 # work-in-progress screenshot sets (tools/screens.cjs); final review sets are committed
 docs/screens/*-wip/
+public/estate.js
