@@ -3,6 +3,8 @@
 import * as THREE from 'three';
 import { fbm, vnoise, sstep, hash } from '../core/noise.js';
 import { C, toon, tm } from '../render/materials.js';
+import { waterMaterial, waterGeometry } from '../render/water.js';
+import { waterBuf, addStrip, addPool, finish } from './water-data.js';
 import { HALF, PUDDLE, WATER_Y, height, gapW, pathW, puddleD, rootedW, nearKind, habitatW, habitatAt, channelW, charcoalW, spoilW, pitW,
   outcropW, wallX, SPRING, BACKWATER, STREAM_LEN, streamAt, streamNear, waterAt } from './plot.js';
 
@@ -108,40 +110,40 @@ export function buildGround({ scene, rng, debug }) {
 
   buildWater(scene, rng);
 
-  // puddle with sky reflections
+  // the puddle: still water from the shared water material (src/render/water.js), shallow over the mud
   {
-    const water = new THREE.Mesh(new THREE.CircleGeometry(PUDDLE.r * 1.15, 24), new THREE.MeshBasicMaterial({ color: C('#3d6676') }));
-    water.rotation.x = -Math.PI / 2; water.scale.y = 1 / 1.3; water.position.set(PUDDLE.x, WATER_Y, PUDDLE.z); water.receiveShadow = false; scene.add(water);
-    const glint = new THREE.MeshBasicMaterial({ color: C('#a9d4dc') });
-    for (let i = 0; i < 6; i++) { const g = new THREE.Mesh(new THREE.PlaneGeometry(rr(0.2, 0.5), 0.05), glint); g.rotation.x = -Math.PI / 2; g.position.set(PUDDLE.x + rr(-0.7, 0.7), WATER_Y + 0.01, PUDDLE.z + rr(-0.5, 0.5)); scene.add(g); }
+    const B = waterBuf(), r = PUDDLE.r * 1.6;
+    addPool(B, PUDDLE.x - r, PUDDLE.z - r, PUDDLE.x + r, PUDDLE.z + r, 0.1, WATER_Y, (x, z) => WATER_Y - height(x, z), (x, z) => puddleD(x, z) < 1.4);
+    const d = finish(B); if (d) { const m = new THREE.Mesh(waterGeometry(d), waterMaterial()); m.receiveShadow = true; scene.add(m); }
+    for (let i = 0; i < 6; i++) { rr(0.2, 0.5); rr(-0.7, 0.7); rr(-0.5, 0.5); }   // (draws the old glints took, so everything built after stays put)
   }
 }
 
-// The stream as a ribbon of water following the channel, plus the spring pool and the backwater.
-// The surface never rises downstream, so a bump in the bed reads as a riffle instead of water flowing uphill.
+// The stream as a ribbon of water following the channel, plus the spring pool and the backwater, all with the
+// shared water material (src/render/water.js) so the plot's water matches the estate's brooks. The surface never
+// rises downstream (waterAt), so a bump in the bed reads as a riffle instead of water flowing uphill; it runs out
+// at the plot's south edge at the level the estate's brook takes over (src/estate/terrain.js).
 function buildWater(scene, { rnd, rr }) {
-  const waterM = new THREE.MeshBasicMaterial({ color: C('#3f6a78'), side: THREE.DoubleSide }), poolM = new THREE.MeshBasicMaterial({ color: C('#2f5260') });
-  const pts = [];
-  for (let s = 0; s < STREAM_LEN; s += 0.2) {
-    const [x, z] = streamAt(s), [x2, z2] = streamAt(Math.min(STREAM_LEN, s + 0.2)), l = Math.hypot(x2 - x, z2 - z) || 1;
-    if (Math.abs(x) > HALF - 0.02 || Math.abs(z) > HALF - 0.02) continue;
-    const wob = 1 + (vnoise(s * 0.6, 7) - 0.5) * 0.4;   // width varies along the stream
-    pts.push({ x, z, y: waterAt(s), nx: -(z2 - z) / l * wob, nz: (x2 - x) / l * wob });
+  const B = waterBuf(), K = 8, rows = [];
+  for (let s = 0; s < STREAM_LEN + 0.1; s += 0.2) {
+    const sc = Math.min(STREAM_LEN, s), [x, z] = streamAt(sc), [xa, za] = streamAt(Math.max(0, sc - 0.3)), [xb, zb] = streamAt(Math.min(STREAM_LEN, sc + 0.3)), l = Math.hypot(xb - xa, zb - za) || 1;
+    if (Math.abs(x) > HALF - 0.02 || Math.abs(z) > HALF - 0.02) { if (rows.length) addStrip(B, rows.splice(0)); continue; }
+    const wob = 1 + (vnoise(sc * 0.6, 7) - 0.5) * 0.4, nx = -(zb - za) / l, nz = (xb - xa) / l, y = waterAt(sc), W = 0.8 * wob;
+    const g = (waterAt(Math.max(0, sc - 1)) - waterAt(Math.min(STREAM_LEN, sc + 1))) / 2, rough = sstep(0.02, 0.09, g), speed = 0.3 + 0.6 * rough;
+    const row = [];
+    for (let c = 0; c <= K; c++) {
+      const o = -W + (2 * W * c) / K; let vx = x + nx * o, vz = z + nz * o;
+      vx = Math.max(-HALF, Math.min(HALF, vx)); vz = Math.max(-HALF, Math.min(HALF, vz));
+      row.push([vx, y, vz, sc, o, speed, rough * 0.8, y - height(vx, vz), rough * 0.5 * (1 - Math.abs(o) / W)]);
+    }
+    rows.push(row);
   }
-  const P = [], I = [], W = 0.5;
-  pts.forEach((p, i) => { P.push(p.x + p.nx * W, p.y, p.z + p.nz * W, p.x - p.nx * W, p.y, p.z - p.nz * W); if (i) { const a = (i - 1) * 2; I.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } });
-  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setIndex(I);
-  scene.add(new THREE.Mesh(g, waterM));
-  for (const pool of [SPRING, BACKWATER]) {   // still pools, darker than the running water
-    const m = new THREE.Mesh(new THREE.CircleGeometry(pool.r * 1.15, 20), poolM); m.rotation.x = -Math.PI / 2;
-    m.position.set(pool.x, waterAt(streamNear(pool.x, pool.z).s) + 0.005, pool.z); scene.add(m);
+  addStrip(B, rows);
+  for (const pool of [SPRING, BACKWATER]) {   // still pools, held at the stream's level beside them
+    const y = waterAt(streamNear(pool.x, pool.z).s) + 0.005, r = pool.r * 1.5;
+    addPool(B, pool.x - r, pool.z - r, pool.x + r, pool.z + r, 0.12, y, (x, z) => y - height(x, z), (x, z) => Math.hypot(x - pool.x, z - pool.z) < r);
   }
-  // glints where the water catches the sky; pale riffles over the shallows
-  const glint = new THREE.MeshBasicMaterial({ color: C('#a9d4dc') }), foam = new THREE.MeshBasicMaterial({ color: C('#d9ece8') });
-  for (let i = 0; i < pts.length; i += 7) {
-    const p = pts[i], riffle = rnd() < 0.25;
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(riffle ? 0.4 : rr(0.15, 0.35), 0.05), riffle ? foam : glint);
-    m.rotation.set(-Math.PI / 2, 0, Math.atan2(p.nx, p.nz) + rr(-0.3, 0.3)); const o = rr(-0.18, 0.18);
-    m.position.set(p.x + p.nx * o, p.y + 0.01, p.z + p.nz * o); scene.add(m);
-  }
+  const d = finish(B); if (d) { const m = new THREE.Mesh(waterGeometry(d), waterMaterial()); m.receiveShadow = true; scene.add(m); }
+  // (the old glints and riffle flecks are drawn by the water shader now; their draws are kept so the scene after them does not move)
+  for (let s = 0, i = 0; s < STREAM_LEN; s += 0.2) { const [x, z] = streamAt(s); if (Math.abs(x) > HALF - 0.02 || Math.abs(z) > HALF - 0.02) continue; if (i++ % 7) continue; if (rnd() >= 0.25) rr(0, 1); rr(0, 1); rr(0, 1); }
 }

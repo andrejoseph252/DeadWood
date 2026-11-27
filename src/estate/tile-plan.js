@@ -10,7 +10,7 @@ import { pondW } from './terrain.js';
 
 // Places that get a hand-authored template later; until then they are built from the generic rules and flagged.
 // (Plot 01 has its template: the plot scene itself, built into tile (8, 8) by the estate page.)
-export const BESPOKE = { farmstead: 'the field station', quarry: 'the old quarry', pond: 'the beaver pond and dam' };
+export const BESPOKE = { farmstead: 'the field station', quarry: 'the old quarry' };   // the beaver pond and dam are built (src/estate-render/water-build.js)
 
 // Ground cover per cover type: items per 100 m² (only built for near tiles)
 const SCATTER = {

@@ -13,6 +13,7 @@ import { BROOKS, POND, pondW, pondR, DAM, damSide, HALF, PLOT, inPlot } from '..
 import { waterBuf, addStrip, addPool, addSection, finish } from '../world/water-data.js';
 import { roadD } from '../estate/cover.js';
 import { groundColor as plotGroundColor } from '../world/ground.js';
+import { bankColor, waterFeatures } from './water-build.js';
 
 export const Y0 = 390;
 const yAt = (x, z) => height(x, z) - Y0;
@@ -26,7 +27,7 @@ const WOOD = new Set(['ancient', 'mixedSouth', 'spruce1962', 'spruce1985', 'ravi
 const C = (h) => new THREE.Color(h);
 const pal = Object.fromEntries(Object.entries(GROUND).map(([k, v]) => [k, v.map(C)]));
 const GRASS = ['#5f7d2c', '#7f9636', '#9aa543'].map(C), MOSS = ['#3f6b22', '#56862a'].map(C), NEEDLE = ['#4d3222', '#5e3d29'].map(C);
-const ROAD = C('#a2906c'), BED = C('#5a5040'), CHAR = C('#262019'), SEED = C('#a89a6a');
+const ROAD = C('#a2906c'), CHAR = C('#262019'), SEED = C('#a89a6a');
 const tileSeed = (i, j, k) => ((i + 7) * 92837111 ^ (j + 3) * 689287499 ^ k * 283923481) >>> 0 || 1;
 
 // ---------- fast colours: hex -> linear rgb, cached; per-tree tints in HSL ----------
@@ -66,7 +67,7 @@ export function buildTileData(i, j, lod, detail = 1) {
       c.lerp(tmp.copy(GRASS[0]).lerp(GRASS[1], n), sstep(gapT + 0.2, gapT, sh + (n2 - 0.5) * 0.2) * 0.9);
       c.lerp(MOSS[n2 > 0.5 ? 1 : 0], sstep(0.6, 0.7, fbm(x * 0.35 + 11, z * 0.35)) * sh * 0.8);
     }
-    for (const b of Object.values(BROOKS)) { if (b.line.farFrom(x, z, 4)) continue; c.lerp(BED, sstep(b.halfWidth * 1.3, b.halfWidth * 0.5, b.line.near(x, z).d)); }
+    bankColor(c, x, z, n2);   // wet soil, gravel bars and cut banks along the brooks
     c.lerp(ROAD, sstep(2.6, 1.6, roadD(x, z) + (n2 - 0.5) * 0.6));
     for (const [px, pz] of plan.charcoal) c.lerp(CHAR, sstep(5.2, 3.8, Math.hypot(x - px, z - pz) + (n2 - 0.5)) * 0.85);
     const pm = Math.max(Math.abs(x - PLOT.x), Math.abs(z - PLOT.z)); if (pm < 38) c.lerp(plotGroundColor(x - PLOT.x, z - PLOT.z, tmp), sstep(38, 30, pm));
@@ -125,6 +126,8 @@ export function buildTileData(i, j, lod, detail = 1) {
   }
 
   if (near) groundCover(plan, F, lay, detail, R, pick);
+  // the pond's snags, lodge, dam sticks, reeds and lily pads; stones and pebbles along the brooks (own random stream)
+  waterFeatures({ x0, z0, size, near, Y, Y0, lay, put, putS, rgb, seed: tileSeed(i, j, 3) });
   if (plan.bespoke.length) { const cx2 = x0 + size / 2, cz2 = z0 + size / 2; for (const [dx, dz] of [[-2, -2], [2, -2], [0, 2.4]]) out.stakes.push([cx2 + dx, yAt(cx2 + dx, cz2 + dz), cz2 + dz]); }
   for (const k of Object.keys(L)) { const l = L[k]; L[k] = { n: l.n, m: new Float32Array(l.m), c: new Float32Array(l.c), a: l.a.length ? new Float32Array(l.a) : null }; }
   return out;
