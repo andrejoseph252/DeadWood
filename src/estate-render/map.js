@@ -14,8 +14,8 @@ const INK = { ancient: '#6f9a4a', mixedSouth: '#93ad5a', spruce1962: '#3f6e5e', 
 const CROWN = { spruce: '#2f4a3c', pine: '#3e5a3a', beech: '#4a6a34', oak: '#55703a', holly: '#2c4426', hornbeam: '#5a7a3a', sycamore: '#4e7034', ash: '#62803e', lime: '#557636', alder: '#3e5e42', birch: '#8a9a62', rowan: '#6a8a3e', goatWillow: '#7a8a52', apple: '#6e8e3e', pear: '#62803a' };
 const PAPER = '#efe6cf', INKLINE = '#4a3f30', H = E.size / 2, N = 250, CELL = E.size / N;
 const SERIF = 'ui-serif, "New York", Georgia, "Iowan Old Style", serif', SANS = '-apple-system, "SF Pro Text", Inter, system-ui, sans-serif';
-const PLACES = [['Crags', -330, -410, 1], ['Ravine', -214, -250, 1], ['Oak coppice', -356, 118, 1], ['Calamity clearing', 318, -292, 1.1], ['Old orchard', -305, 288, 1], ['Alder carr', 175, 212, 0.9], ['Spruce plantations', 170, -110, 1.1], ['Ancient wood', -140, -110, 1.2], ['Hay meadows', -170, 420, 1]];
-const FLAGS = [['Plot 01', ...E.plot.origin], ['Field station', ...E.units.farmstead.buildings], ['Beaver pond', ...E.pond.centre], ['Old quarry', ...E.units.quarry.centre]];
+const PLACES = [['Beaver pond', 236, 222, 0.95], ['Crags', -330, -410, 1], ['Ravine', -214, -250, 1], ['Oak coppice', -356, 118, 1], ['Calamity clearing', 318, -292, 1.1], ['Old orchard', -305, 288, 1], ['Alder carr', 175, 212, 0.9], ['Spruce plantations', 170, -110, 1.1], ['Ancient wood', -140, -110, 1.2], ['Hay meadows', -170, 420, 1]];
+const FLAGS = [['Plot 01', ...E.plot.origin], ['Field station', ...E.units.farmstead.buildings], ['Old quarry', ...E.units.quarry.centre]];
 
 // grids shared by the minimap and the full map (computed once): heights, cover colours, pond and wet masks
 let GRID = null;

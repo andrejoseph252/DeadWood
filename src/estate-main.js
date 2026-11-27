@@ -81,8 +81,8 @@ const ANIMAL_ICON = { deer: 'deer', boar: 'boar', badger: 'badger', fox: 'fox', 
 const ANIMAL_SUB = { deer: 'Capreolus capreolus', boar: 'Sus scrofa', badger: 'Meles meles', fox: 'Vulpes vulpes', hare: 'Lepus europaeus', squirrel: 'Sciurus vulgaris', beaver: 'Castor fiber', buzzard: 'Buteo buteo' };
 const PLACES = [
   { title: 'Woods', items: [['Ancient beech–oak wood', -40, 20, 'leaf'], ['Plot 01, the research plot', 31, 31, 'plot'], ['Ravine gorge', -246, -200, 'water'], ['Oak coppice', -356, 118, 'leaf'], ['Spruce plantation', 140, -150, 'tree']] },
-  { title: 'Open ground and water', items: [['Calamity clearing', 318, -292, 'tree'], ['Dead spruce reserve', 250, -330, 'tree'], ['Crags', -300, -330, 'rock'], ['Main brook', -120, 110, 'water'], ['Alder carr', 160, 215, 'water'], ['Old orchard', -305, 300, 'leaf']] },
-  { title: 'To be hand-made', items: [['Beaver pond', 238, 246, 'beaver', 'Soon'], ['Old quarry', 362, -40, 'rock', 'Soon'], ['Field station', -196, 330, 'house', 'Soon']] },
+  { title: 'Open ground and water', items: [['Beaver pond', 238, 246, 'beaver'], ['Calamity clearing', 318, -292, 'tree'], ['Dead spruce reserve', 250, -330, 'tree'], ['Crags', -300, -330, 'rock'], ['Main brook', -120, 110, 'water'], ['Alder carr', 160, 215, 'water'], ['Old orchard', -305, 300, 'leaf']] },
+  { title: 'To be hand-made', items: [['Old quarry', 362, -40, 'rock', 'Soon'], ['Field station', -196, 330, 'house', 'Soon']] },
 ];
 hud.button('map', 'Map', () => map.toggle());
 const followBtn = hud.button('follow', 'Follow an animal', () => {});
