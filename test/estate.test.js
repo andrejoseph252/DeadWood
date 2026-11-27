@@ -75,3 +75,14 @@ test('estate animals: every home and starting spot is walkable, none inside Plot
   for (const a of fauna) { assert.ok(walkable(a.x, a.z, { swim: a.swim }), `${a.id} ${a.species}`); assert.ok(!inPlot(a.x, a.z), a.id); }
   assert.ok(fauna.filter((a) => a.species === 'beaver').every((a) => a.swim));
 });
+
+test('the beaver pond: drowned snags in its shallows, a lodge on its bank, reeds, lily pads and pebbles in its tiles', async () => {
+  const { pondSet } = await import('../src/estate-render/water-build.js'), { POND, pondR, damSide } = await import('../src/estate/terrain.js');
+  const { snags, lodge } = pondSet();
+  assert.ok(snags.length >= 10, `${snags.length} snags`);
+  for (const s of snags) { const d = POND.level - height(s.x, s.z); assert.ok(d > 0.1 && d < 1 && damSide(s.x, s.z) < 0, `snag at ${s.x.toFixed(1)}, ${s.z.toFixed(1)} in ${d.toFixed(2)} m of water`); }
+  assert.ok(lodge && pondR(lodge.x, lodge.z) > 0.6 && POND.level - height(lodge.x, lodge.z) < 1);
+  const { buildTileData } = await import('../src/estate-render/tile-build.js'), T = (v) => Math.floor((v + HALF) / E.tile), n = {};
+  for (const [di, dj] of [[0, 0], [1, 0], [0, 1], [1, 1]]) for (const [k, l] of Object.entries(buildTileData(T(POND.centre[0]) + di, T(POND.centre[1]) + dj, 'near', 0.3).layers)) n[k] = (n[k] || 0) + l.n;
+  for (const k of ['reed', 'pad', 'mound', 'pebble', 'limb']) assert.ok(n[k] > 0, k);
+});

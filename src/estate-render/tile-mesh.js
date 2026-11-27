@@ -42,6 +42,11 @@ function kit(tex) {
     twig: { geo: new THREE.CylinderGeometry(0.015, 0.02, 1, 4).translate(0, 0.5, 0), mat: plain, cast: true }, limb: { geo: new THREE.CylinderGeometry(0.07, 0.1, 1, 6).translate(0, 0.5, 0), mat: plain, cast: true },
     rock: { geo: new THREE.IcosahedronGeometry(1, 0), mat: plain, cast: true }, stump: { geo: new THREE.CylinderGeometry(0.18, 0.22, 1, 8).translate(0, 0.5, 0), mat: plain, cast: true },
     pinecone: { geo: new THREE.CapsuleGeometry(0.035, 0.07, 2, 5).rotateZ(Math.PI / 2), mat: plain }, stalk: { geo: new THREE.CylinderGeometry(0.012, 0.016, 1, 4).translate(0, 0.5, 0), mat: stalkM },
+    // water margins (src/estate-render/water-build.js): lodge and dam mud, reeds and reedmace, lily pads and flowers, pebbles
+    mound: { geo: new THREE.SphereGeometry(1, 10, 5, 0, Math.PI * 2, 0, Math.PI / 2), mat: plain, cast: true }, mud: { geo: new THREE.SphereGeometry(1, 7, 3, 0, Math.PI * 2, 0, Math.PI / 2), mat: plain },
+    reed: { geo: tuftGeo(6, 0.025, 1.3, 2.0, 0.22, 9), mat: sedgeM }, cattail: { geo: new THREE.CapsuleGeometry(0.035, 0.2, 2, 5), mat: plain },
+    pad: { geo: new THREE.CircleGeometry(1, 9, 0.35, Math.PI * 2 - 0.7).rotateX(-Math.PI / 2), mat: plain }, lily: { geo: new THREE.IcosahedronGeometry(0.06, 0).scale(1, 0.6, 1), mat: plain },
+    pebble: { geo: new THREE.IcosahedronGeometry(1, 0), mat: plain },
     _ground: toon({ vertexColors: true }),
     _border: toon({ vertexColors: true, side: THREE.DoubleSide }), _stake: tm('#b88d58'), _flag: toon({ color: C('#ff6a1a'), side: THREE.DoubleSide }), _stakeG: new THREE.BoxGeometry(0.08, 1.2, 0.08).translate(0, 0.6, 0), _flagG: new THREE.PlaneGeometry(0.45, 0.2),
   };

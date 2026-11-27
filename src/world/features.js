@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { C, toon, tm } from '../render/materials.js';
 import { makeRock } from './props.js';
 import { BOULDERS } from './obstacles.js';
-import { HALF, TREES, STUMPS, PLATES, SETT, STREAM, height, wallX, streamD, outcropEdge, pathZ, MAP } from './plot.js';
+import { HALF, TREES, STUMPS, PLATES, SETT, STREAM, height, waterAt, streamNear, wallX, streamD, outcropEdge, pathZ, MAP } from './plot.js';
 
 const GREY = ['#8a867c', '#76726a', '#9b968a'], MOSS = ['#3f6b22', '#4e7a2a', '#5d8a2f', '#466f26'];
 const SANDSTONE = { stone: ['#9a8a6e', '#a89878', '#8a7b62'], lichen: '#c4bf8c', squash: 0.8, sink: 0.05 };
@@ -50,7 +50,9 @@ function buildStreamStones({ rng, instances }) {
       const x = x0 + (x1 - x0) * d / len + nx * o, z = z0 + (z1 - z0) * d / len + nz * o;
       if (Math.abs(x) > HALF - 0.2 || Math.abs(z) > HALF - 0.2) continue;
       const s = bank ? rr(0.1, 0.2) : rr(0.05, 0.13);
-      list.push({ x, y: height(x, z) + s * 0.25, z, ry: rnd() * 6.28, sx: s * 1.3, sy: s * 0.6, sz: s, c: bank && rnd() < 0.6 ? pick(MOSS) : pick(['#8a867c', '#9b968a', '#6e6a62', '#a7a296']) });
+      // stones in the bed sit up through the water (the shared water material foams round them) and are dark and wet
+      const y = bank ? height(x, z) + s * 0.25 : Math.max(height(x, z) + s * 0.25, waterAt(streamNear(x, z).s) - s * 0.25);
+      list.push({ x, y, z, ry: rnd() * 6.28, sx: s * 1.3, sy: s * 0.6, sz: s, c: bank && rnd() < 0.6 ? pick(MOSS) : pick(bank ? ['#8a867c', '#9b968a', '#6e6a62', '#a7a296'] : ['#5e5a52', '#6a665c', '#4e4b44', '#77736a']) });
     }
   }
   instances(new THREE.IcosahedronGeometry(1, 0), toon(), list, { cast: true });

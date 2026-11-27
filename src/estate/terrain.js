@@ -136,10 +136,14 @@ function landHeight(x, z) {
 // (narrow, shallow, broken water); pools where it is level (wider, deeper, still); bends have a steep cut bank on
 // the outside and a gravel bar on the inside.
 const STEP = 1;
+const plotFade = (x, z) => sstep(PH, PH + 6, Math.max(Math.abs(x - PX), Math.abs(z - PZ)));
+const PLOT_WATER = 0.13;   // Plot 01's stream runs this deep over its bed (src/world/fields.js waterAt)
 const idx = (b, s) => Math.max(0, Math.min(b.bed.length - 1, Math.round(s / STEP)));
 for (const b of Object.values(BROOKS)) {
   const bed = [], land = []; let lo = Infinity;
-  for (let s = 0; s <= b.line.length + STEP; s += STEP) { const [x, z] = b.line.at(s), h = landHeight(x, z); lo = Math.min(lo, h - b.depth); bed.push(lo); land.push(h); }
+  // Plot 01's own channel is already cut into the plot's terrain, so inside the plot the brook's bed is the ground
+  // itself; the estate's channel depth comes in over a few metres past the plot's edge (no step in bed or water)
+  for (let s = 0; s <= b.line.length + STEP; s += STEP) { const [x, z] = b.line.at(s), h = landHeight(x, z), pf = plotFade(x, z); lo = Math.min(lo, h - b.depth * (b.key === 'plot01' ? pf : 1)); bed.push(lo); land.push(h); }
   b.bed = bed; b.land = land;
   b.bedAt = (s) => { const i = Math.max(0, Math.min(bed.length - 2, Math.floor(s / STEP))), f = Math.max(0, Math.min(1, s / STEP - i)); return bed[i] + (bed[i + 1] - bed[i]) * f; };
 }
@@ -167,14 +171,19 @@ for (const b of Object.values(BROOKS)) {
     excess = Math.max(excess, b.land[i] - b.bed[i] - b.depth * 0.5);
   }
   Object.assign(b, { hw, pool, riff, kap, reach: b.halfWidth * 2.2 + excess / 0.3 + 1 });
-  b.surfaceAt = (s) => b.bedAt(s) + b.depth * 0.5;   // the water surface: a constant height over the bed, so it never rises downstream either
+  // the water surface: a constant height over the bed (in Plot 01, the plot stream's own depth, easing to the
+  // brook's past the edge), kept from rising downstream
+  const surf = new Float32Array(n); let sl = Infinity;
+  for (let i = 0; i < n; i++) { const [x, z] = b.line.at(Math.min(b.line.length, i * STEP)), d = b.key === 'plot01' ? PLOT_WATER + (b.depth * 0.5 - PLOT_WATER) * plotFade(x, z) : b.depth * 0.5; sl = Math.min(sl, b.bed[i] + d); surf[i] = sl; }
+  b.surf = surf;
+  b.surfaceAt = (s) => { const i = Math.max(0, Math.min(n - 2, Math.floor(s / STEP))), f = Math.max(0, Math.min(1, s / STEP - i)); return surf[i] + (surf[i + 1] - surf[i]) * f; };
 }
 
 // The channel at a signed offset o from brook b's centre line, s along it: the target ground height (the bed
 // profile, then the banks) and what the place is like.
 function channelAt(b, o, s) {
   const i = idx(b, s), hw = b.hw[i], kap = b.kap[i], a = Math.min(1, Math.abs(kap) * hw * 6), inner = o * kap > 0 ? a : 0, outer = o * kap > 0 ? 0 : a;
-  const wet = hw * (1 + 0.45 * inner - 0.2 * outer), bed = b.bedAt(s), surf = bed + b.depth * 0.5;
+  const wet = hw * (1 + 0.45 * inner - 0.2 * outer), bed = b.bedAt(s), surf = b.surfaceAt(s);
   const floor = bed - b.pool[i] * b.depth * 0.55 + b.riff[i] * b.depth * 0.22 - outer * b.depth * 0.25 + inner * b.depth * 0.2;
   const t = Math.abs(o) / wet;
   const T = t < 1 ? floor + (surf - floor) * t ** (1.6 + 1.6 * outer - 0.6 * inner) : surf + (Math.abs(o) - wet) * (0.4 + 1.3 * outer - 0.22 * inner);
@@ -225,7 +234,7 @@ const smin = (a, b, k) => { const h = Math.max(k - Math.abs(a - b), 0) / k; retu
 export function height(x, z) {
   if (inPlot(x, z)) return landHeight(x, z);   // the plot's own terrain (its stream is cut in it already)
   let h = landHeight(x, z);
-  const pm = Math.max(Math.abs(x - PX), Math.abs(z - PZ)), e = sstep(PH, PH + 5, pm);   // the channels ease in past Plot 01's edge, where its own channel ends
+  const pm = Math.max(Math.abs(x - PX), Math.abs(z - PZ)), e = sstep(PH, PH + 1.5, pm);   // the channels ease in past Plot 01's edge, where its own channel ends
   for (const b of Object.values(BROOKS)) {
     if (b.line.farFrom(x, z, b.reach)) continue;
     const n = b.line.near(x, z, b.reach); if (n.d > b.reach) continue;
