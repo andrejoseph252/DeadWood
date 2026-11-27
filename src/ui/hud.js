@@ -22,6 +22,7 @@ const ICONS = {
   house: '<path d="M4 11 12 4l8 7"/><path d="M6 10v10h12V10"/><path d="M10 20v-5h4v5"/>',
   leaf: '<path d="M5 19c0-8 5-14 15-14 0 10-6 15-14 15"/><path d="M5 19 13 11"/>',
   close: '<path d="M6 6l12 12M18 6 6 18"/>',
+  xray: '<circle cx="12" cy="12" r="8" stroke-dasharray="2.6 2.4"/><path d="M12 6.5 8.5 12h2l-2.5 5h8l-2.5-5h2L12 6.5Z"/>',
   play: '<path d="M8 5.5v13l10.5-6.5L8 5.5Z" fill="currentColor"/>',
   pause: '<path d="M8 5.5v13M16 5.5v13" stroke-width="2.6"/>',
 };
@@ -73,17 +74,32 @@ export function createHud() {
       place.querySelector('.chip').textContent = chip; place.querySelector('h1').textContent = title; place.querySelector('p').textContent = text; place.classList.toggle('flagged', !!flagged);
     },
     setLoading(on) { pill.classList.toggle('on', on); },
-    // time control: play/pause, the year, and a speed switch. onChange({ playing, speed }) where speed is years per second
-    timeControl(onChange) {
-      const SPEEDS = [[0.5, '½ yr/s'], [2, '2 yr/s'], [8, '8 yr/s']];
-      const box = el('div', 'clock glass', `<button class="ib play" aria-label="Play">${icon('play')}</button><div class="yr"><b>2026</b><span>Study year 3</span></div><button class="speed" aria-label="Speed">${SPEEDS[0][1]}</button>`);
+    // season control: the season and year, a dial through the year, "Next season", and Auto (keeps going).
+    // onNext() starts a season passing; onAuto(on) toggles auto. Returns { set(season, year, progress), busy(on), summary(card) }
+    seasonControl({ onNext, onAuto }) {
+      const box = el('div', 'clock glass', `<svg class="dial" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15" class="track"/><path class="arc" d=""/><circle class="hand" r="2.6" cx="18" cy="3"/></svg><div class="yr"><b>Summer</b><span>2026 · study year 3</span></div><button class="next">Next season</button><button class="auto" aria-pressed="false" title="Keep the seasons going">Auto</button>`);
       document.body.append(box);
-      let playing = false, si = 0;
-      const playBtn = box.querySelector('.play'), speedBtn = box.querySelector('.speed'), emit = () => onChange({ playing, speed: SPEEDS[si][0] });
-      playBtn.addEventListener('click', () => { playing = !playing; playBtn.innerHTML = icon(playing ? 'pause' : 'play'); playBtn.setAttribute('aria-label', playing ? 'Pause' : 'Play'); box.classList.toggle('running', playing); emit(); });
-      speedBtn.addEventListener('click', () => { si = (si + 1) % SPEEDS.length; speedBtn.textContent = SPEEDS[si][1]; emit(); });
-      addEventListener('keydown', (e) => { if (e.key === ' ' && e.target === document.body) { e.preventDefault(); playBtn.click(); } });
-      return { setYear(studyYear, extra = '') { box.querySelector('b').textContent = 2023 + studyYear; box.querySelector('span').textContent = `Study year ${studyYear}${extra}`; } };
+      const next = box.querySelector('.next'), auto = box.querySelector('.auto');
+      next.addEventListener('click', () => onNext());
+      auto.addEventListener('click', () => { const on = auto.getAttribute('aria-pressed') !== 'true'; auto.setAttribute('aria-pressed', String(on)); onAuto(on); });
+      addEventListener('keydown', (e) => { if (e.key === ' ' && e.target === document.body) { e.preventDefault(); next.click(); } });
+      const arc = box.querySelector('.arc'), hand = box.querySelector('.hand');
+      let toast = null, toastT = 0;
+      return {
+        // progress: 0..1 through the calendar year (0 = 1 March, the start of spring)
+        set(season, year, progress) {
+          box.querySelector('b').textContent = season; box.querySelector('span').textContent = `${year} · study year ${year - 2023}`;
+          const a = progress * Math.PI * 2 - Math.PI / 2, x = 18 + 15 * Math.cos(a), y = 18 + 15 * Math.sin(a);
+          arc.setAttribute('d', progress > 0.001 ? `M18 3 A15 15 0 ${progress > 0.5 ? 1 : 0} 1 ${x.toFixed(2)} ${y.toFixed(2)}` : ''); hand.setAttribute('cx', x.toFixed(2)); hand.setAttribute('cy', y.toFixed(2));
+        },
+        busy(on) { next.disabled = on; box.classList.toggle('running', on); next.textContent = on ? 'Passing…' : 'Next season'; },
+        // a short card about the season that just passed: { title, lines: [] }
+        summary({ title, lines }) {
+          if (!toast) { toast = el('div', 'season-card glass'); document.body.append(toast); }
+          toast.innerHTML = `<div class="eyebrow">Season report</div><h3>${title}</h3><ul>${lines.map((l) => `<li>${l}</li>`).join('')}</ul>`;
+          toast.classList.add('open'); clearTimeout(toastT); toastT = setTimeout(() => toast.classList.remove('open'), 6500);
+        },
+      };
     },
     // the inspect card: { name, sci, dbh, height, age, light, inc, incOpt, status, why } or null to close
     inspect(info, onClose) {

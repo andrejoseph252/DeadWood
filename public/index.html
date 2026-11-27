@@ -63,14 +63,19 @@ button{font:inherit;color:inherit}
 .pop .sub{display:block;font-size:12px;color:var(--text-2);margin-top:1px}
 .pop .flag{margin-left:auto;font-size:11px;font-weight:600;color:var(--danger)}
 
-/* time control (top centre) */
-.clock{position:fixed;top:calc(16px + var(--safe-t));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:6px;padding:5px 6px 5px 5px;border-radius:20px;z-index:3}
-.clock .play{width:38px;height:38px;border-radius:14px;background:rgba(255,255,255,.1)}
-.clock.running .play{background:var(--accent-soft);color:var(--accent)}
-.clock .yr{display:flex;flex-direction:column;padding:0 8px;line-height:1.1}.clock .yr b{font-size:17px;font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:-.01em}.clock .yr span{font-size:11px;color:var(--text-2)}
-.clock .speed{height:30px;padding:0 10px;border:0;border-radius:11px;background:rgba(255,255,255,.08);font-size:12px;font-weight:600;color:var(--text-2);cursor:pointer;font-variant-numeric:tabular-nums}
-.clock .speed:hover{background:rgba(255,255,255,.14);color:var(--text)}
-.pill{top:calc(72px + var(--safe-t))!important}
+/* season control (top centre) */
+.clock{position:fixed;top:calc(16px + var(--safe-t));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:6px 6px 6px 8px;border-radius:20px;z-index:3}
+.clock .dial{width:34px;height:34px;flex:none}.clock .dial .track{fill:none;stroke:rgba(255,255,255,.14);stroke-width:2.4}.clock .dial .arc{fill:none;stroke:var(--accent);stroke-width:2.4;stroke-linecap:round}.clock .dial .hand{fill:var(--text)}
+.clock .yr{display:flex;flex-direction:column;padding:0 6px 0 2px;line-height:1.15;min-width:118px}.clock .yr b{font-size:16px;font-weight:650;letter-spacing:-.01em}.clock .yr span{font-size:11px;color:var(--text-2);font-variant-numeric:tabular-nums}
+.clock button{height:34px;padding:0 13px;border:0;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s,color .15s}
+.clock .next{background:var(--accent);color:#1d1a12}.clock .next:hover{filter:brightness(1.06)}.clock .next:disabled{background:rgba(255,255,255,.12);color:var(--text-2);cursor:default}
+.clock .auto{background:rgba(255,255,255,.08);color:var(--text-2)}.clock .auto[aria-pressed=true]{background:var(--accent-soft);color:var(--accent)}
+.clock.running .dial .hand{fill:var(--accent)}
+.pill{top:calc(76px + var(--safe-t))!important}
+.season-card{position:fixed;top:calc(76px + var(--safe-t));left:50%;width:min(340px,calc(100vw - 32px));padding:14px 16px;border-radius:var(--r-md);z-index:3;opacity:0;transform:translate(-50%,-6px);pointer-events:none;transition:opacity .25s,transform .3s cubic-bezier(.2,.8,.2,1)}
+.season-card.open{opacity:1;transform:translate(-50%,0)}
+.season-card .eyebrow{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)}.season-card h3{margin:2px 0 6px;font-size:17px;font-weight:650}
+.season-card ul{margin:0;padding-left:16px;font-size:13px;line-height:1.45;color:var(--text)}
 /* inspect card */
 .inspect{position:fixed;left:16px;bottom:calc(18px + var(--safe-b));width:300px;max-width:calc(100vw - 32px);padding:16px 18px 14px;border-radius:var(--r-md);z-index:4;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .18s,transform .22s cubic-bezier(.2,.8,.2,1)}
 .inspect.open{opacity:1;transform:none;pointer-events:auto}
@@ -80,7 +85,7 @@ button{font:inherit;color:inherit}
 .inspect .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0}.inspect .grid b{display:block;font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}.inspect .grid span{font-size:11px;color:var(--text-2)}
 .inspect .growth span{font-size:12px;color:var(--text-2)}.inspect .growth .bar{height:6px;border-radius:999px;background:rgba(255,255,255,.1);margin:5px 0 3px;overflow:hidden}.inspect .growth .bar i{display:block;height:100%;border-radius:999px;background:var(--accent)}.inspect .growth em{font-style:normal;font-size:12px;color:var(--text-2);font-variant-numeric:tabular-nums}
 .inspect p{margin:10px 0 0;font-size:13px;line-height:1.4;color:var(--text)}
-@media (max-width:640px){.inspect{bottom:calc(140px + var(--safe-b));width:calc(100vw - 32px)}.clock{top:auto;bottom:calc(84px + var(--safe-b))}.pill{top:calc(16px + var(--safe-t))!important}}
+@media (max-width:640px){.inspect{bottom:calc(140px + var(--safe-b));width:calc(100vw - 32px)}.clock{top:auto;bottom:calc(84px + var(--safe-b))}.clock .yr{min-width:0}.pill{top:calc(16px + var(--safe-t))!important}.season-card{top:auto;bottom:calc(140px + var(--safe-b))}}
 /* arriving veil: covers a jump until every tile in view is at full detail */
 .veil{position:fixed;inset:0;z-index:2;display:grid;place-items:center;background:rgba(18,26,20,.55);-webkit-backdrop-filter:blur(28px) saturate(140%);backdrop-filter:blur(28px) saturate(140%);opacity:0;pointer-events:none;transition:opacity .45s ease}
 .veil.on{opacity:1;pointer-events:auto;transition:opacity .12s ease}

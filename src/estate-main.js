@@ -4,8 +4,8 @@
 import * as THREE from 'three';
 import { CUT, cutaway } from './render/cutaway.js';
 import { createForest } from './sim/forest.js';
+import { createGlow } from './render/glow.js';
 import { useTrees, tileTrees, treeShape } from './estate/tile-plan.js';
-import { TREES as PLOT_TREES, height as plotH } from './world/plot.js';
 import { createPipeline } from './render/pipeline.js';
 import { createCameraRig } from './render/camera.js';
 import { addLights } from './render/lights.js';
@@ -99,6 +99,8 @@ const canopyBtn = hud.button('tree', 'Canopy', (e, b) => streamer.setCanopy(b.ge
 hud.button('rotL', 'Rotate left', () => rig.rotateBy(-1));
 hud.button('rotR', 'Rotate right', () => rig.rotateBy(1));
 hud.button('home', 'Home zoom', () => { rig.camera.zoom = HOME; rig.camera.updateProjectionMatrix(); });
+const cutBtn = hud.button('xray', 'See through the canopy as you zoom (C)', (e, b) => { cutawayOn = b.getAttribute('aria-pressed') === 'true'; }, { toggle: true, pressed: true });
+addEventListener('keydown', (e) => { if ((e.key === 'c' || e.key === 'C') && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) cutBtn.click(); });
 
 // ---------- the estate map: minimap in the corner, full map on M or the Map button ----------
 const map = createEstateMap({
@@ -114,14 +116,14 @@ window.__estate = { streamer, rig, fauna, get forest() { return forest; } };
 // ---------- the canopy cutaway (render/cutaway.js) ----------
 // Zoomed out you see the canopy; as you zoom in, crowns dissolve in a circle around the cursor (on a mouse), the
 // animal you follow, or the view centre (on touch), so the forest floor shows where you are looking.
-let followed = null, pointer = null, pointerT = -1e9;
+let followed = null, pointer = null, pointerT = -1e9, cutawayOn = true;
 rig.onFollowReleased(() => { followed = null; });
 const raycaster = new THREE.Raycaster(), plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), ndc = new THREE.Vector2(), hit = new THREE.Vector3(), cutGoal = new THREE.Vector3();
 container.addEventListener('pointermove', (e) => { if (e.pointerType !== 'mouse') return; const r = container.getBoundingClientRect(); pointer = [((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1]; pointerT = performance.now(); });
 container.addEventListener('pointerleave', () => { pointer = null; });
 function updateCutaway(dt) {
   const z = rig.camera.zoom, t = rig.controls.target;
-  const R = Math.min(1, Math.max(0, (z - 0.55) / 0.75)) * 10 + Math.min(1, Math.max(0, (z - 1.3) / 1.6)) * 5;   // metres
+  const R = cutawayOn ? Math.min(1, Math.max(0, (z - 0.55) / 0.75)) * 10 + Math.min(1, Math.max(0, (z - 1.3) / 1.6)) * 5 : 0;   // metres
   CUT.uCutR.value += (R - CUT.uCutR.value) * Math.min(1, dt * 8 || 1);
   if (followed) cutGoal.set(followed.position.x, followed.position.y, followed.position.z);
   else if (pointer && performance.now() - pointerT < 4000) { plane.constant = -t.y; ndc.set(pointer[0], pointer[1]); raycaster.setFromCamera(ndc, rig.camera); if (raycaster.ray.intersectPlane(plane, hit)) cutGoal.set(hit.x, yAt(hit.x, hit.z), hit.z); }
@@ -129,25 +131,50 @@ function updateCutaway(dt) {
   const c = CUT.uCutC.value; if (c.y < -1e3 || dt === 0) c.copy(cutGoal); else c.lerp(cutGoal, Math.min(1, dt * 14));
 }
 
-// ---------- the forest simulation (sim/forest.js) and time ----------
-// Years are spread over frames (a few patches per frame); the 3D world refreshes to the newest year once the
-// previous refresh has finished, so fast-forward never floods the tile builders.
-let forest = null, yearRun = null, playing = false, yps = 0.5, yearClock = 0, shownYear = 3;
-const clock = hud.timeControl(({ playing: p, speed }) => { playing = p; yps = speed; if (p && !forest) forest = createForest(generateEstate()); });
+// ---------- seasons as turns (the forest simulation: sim/forest.js) ----------
+// Time moves a season at a time. "Next season" plays it out over a few seconds while the dial sweeps through the
+// months; growth happens in summer, so the forest is simulated as summer turns to autumn and the 3D world refreshes
+// to the new year. Auto keeps going. Progress runs 0..1 from 1 March (the start of spring).
+const SEASONS = [['Spring', 0], ['Summer', 0.25], ['Autumn', 0.5], ['Winter', 0.75]], SEASON_SECONDS = 5;
+let forest = null, yearRun = null, auto = false, autoT = 0, shownYear = 3;
+const cal = { si: 1, year: 2026, p: 0.305, from: 0, to: 0, t: -1, growth: null };   // a June evening, study year 3
+const seasons = hud.seasonControl({ onNext: nextSeason, onAuto: (on) => { auto = on; if (on && cal.t < 0) nextSeason(); } });
+seasons.set('Summer', cal.year, cal.p);
 const treesFor = (i, j) => { const out = []; for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) out.push(...tileTrees(i + di, j + dj)); return out; };
+function nextSeason() {
+  if (cal.t >= 0) return;
+  if (!forest) forest = createForest(generateEstate());
+  const nsi = (cal.si + 1) % 4; cal.from = cal.p; cal.to = SEASONS[nsi][1] + (nsi === 0 ? 1 : 0); cal.t = 0; cal.nsi = nsi;
+  if (cal.si === 1) { cal.growth = { before: forest.stats() }; yearRun = forest.yearSteps(); }   // summer is the growing season
+  seasons.busy(true);
+}
 function stepTime(dt) {
-  if (!forest) return;
-  if (playing) yearClock += dt * yps;
-  if (!yearRun && yearClock >= 1) { yearRun = forest.yearSteps(); yearClock -= 1; }
-  if (yearRun) { const t0 = performance.now(); while (performance.now() - t0 < 8) { if (yearRun.next().done) { yearRun = null; clock.setYear(forest.year); break; } } }
-  if (!yearRun && forest.year !== shownYear && !streamer.refreshing) { shownYear = forest.year; useTrees(generateEstate().trees); streamer.setGeneration(shownYear, treesFor); if (selected) showTree(selected); }
+  if (yearRun) { const t0 = performance.now(); while (performance.now() - t0 < 8) { const r = yearRun.next(); if (r.done) { cal.growth.result = r.value; yearRun = null; break; } } }
+  if (cal.t >= 0) {
+    cal.t = Math.min(1, cal.t + dt / SEASON_SECONDS);
+    const e = cal.t < 0.5 ? 2 * cal.t * cal.t : 1 - (-2 * cal.t + 2) ** 2 / 2, p = cal.from + (cal.to - cal.from) * e;   // ease in and out
+    if (cal.p < 0.833 && p % 1 >= 0.833 && cal.from < 0.833) cal.year += 1;   // 1 January
+    cal.p = p % 1;
+    seasons.set(SEASONS[cal.p >= 0.75 ? 3 : cal.p >= 0.5 ? 2 : cal.p >= 0.25 ? 1 : 0][0], cal.year, cal.p);
+    if (cal.t >= 1 && !yearRun) endSeason();
+  } else if (auto && performance.now() > autoT) nextSeason();
+  if (forest && !yearRun && forest.year !== shownYear && !streamer.refreshing) { shownYear = forest.year; useTrees(generateEstate().trees); streamer.setGeneration(shownYear, treesFor); if (selected) showTree(selected); }
+}
+function endSeason() {
+  cal.t = -1; cal.si = cal.nsi; seasons.busy(false); autoT = performance.now() + 1800;
+  const name = SEASONS[cal.si][0], lines = [];
+  if (cal.growth) {
+    const a = cal.growth.before, b = forest.stats(), r = cal.growth.result || { died: 0, born: 0 };
+    lines.push(`The trees grew: basal area ${a.basalArea.toFixed(1)} → ${b.basalArea.toFixed(1)} m²/ha.`, `${r.died.toLocaleString()} trees died and stand as dead wood.`, `${r.born.toLocaleString()} saplings took hold in the gaps.`);
+    cal.growth = null;
+  } else lines.push({ Winter: 'Autumn is over: leaves fall and the trees go dormant.', Spring: 'Winter passes; the forest rests until spring.', Summer: 'Spring: buds break and the growing season begins.', Autumn: '' }[name]);
+  seasons.summary({ title: `${name} ${cal.year}`, lines: lines.filter(Boolean) });
 }
 
 // ---------- inspect: click a tree to read it ----------
 let selected = null, downAt = null;
 const pick = new THREE.Raycaster(), pickPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), pickHit = new THREE.Vector3();
-const marker = new THREE.Mesh(new THREE.RingGeometry(0.88, 1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#f4c56e', transparent: true, opacity: 0.95, depthTest: false }));
-marker.renderOrder = 10; marker.visible = false; scene.add(marker);
+const glow = createGlow(scene);   // the selected tree glows (render/glow.js)
 container.addEventListener('pointerdown', (e) => { downAt = [e.clientX, e.clientY, performance.now()]; });
 container.addEventListener('pointerup', (e) => {
   if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 6 || performance.now() - downAt[2] > 450) return;
@@ -159,23 +186,20 @@ container.addEventListener('pointerup', (e) => {
   if (!forest) useTrees(generateEstate().trees);
   let best = null, bd = Infinity;
   for (const t of treesFor(ti, tj)) { const d = Math.hypot(t.x - pickHit.x, t.z - pickHit.z), reach = Math.max(1.2, treeShape(t).r * 0.8); if (d < reach && d < bd) { bd = d; best = t; } }
-  if (best) showTree(best); else { selected = null; marker.visible = false; hud.inspect(null); }
+  if (best) showTree(best); else { selected = null; glow.hide(); hud.inspect(null); }
 });
 function showTree(t) {
   selected = t; const info = (forest || createForest.preview).describe(t);
-  marker.position.set(t.x, yAt(t.x, t.z) + 0.12, t.z); const r = Math.max(0.9, treeShape(t).r); marker.scale.set(r, 1, r); marker.visible = true;
-  hud.inspect(info, () => { selected = null; marker.visible = false; });
+  glow.show(t, treeShape(t), yAt(t.x, t.z) - 0.1);
+  hud.inspect(info, () => { selected = null; glow.hide(); });
 }
 createForest.preview = { describe: (t) => createForest({ trees: [], patches: [] }).describe(t) };
 
 function stepPlot() {
   const r = plot.steps.next(); if (!r.done) return;
   Object.assign(plot, r.value, { done: true }); plot.crowns.forEach((m) => { m.visible = shared.canopy; streamer.crowns.add(m); });
-  // Plot 01's crowns join the cutaway, and its trees get crown outlines on the ground like the estate's
+  // Plot 01's crowns join the cutaway
   const mats = new Set(); plot.crowns.forEach((c) => c.traverse((o) => { if (o.isMesh) mats.add(o.material); })); mats.forEach((m) => cutaway(m));
-  const trees = PLOT_TREES.filter((t) => t.r > 0), ring = new THREE.InstancedMesh(new THREE.RingGeometry(0.93, 1, 40).rotateX(-Math.PI / 2), cutaway(new THREE.MeshBasicMaterial({ color: '#fff4d6' }), 'ring'), trees.length), d = new THREE.Object3D();
-  trees.forEach((t, k) => { d.position.set(t.x, plotH(t.x, t.z) + 0.06, t.z); d.scale.set(t.r, 1, t.r); d.updateMatrix(); ring.setMatrixAt(k, d.matrix); });
-  ring.visible = shared.canopy; plot.group.add(ring); streamer.crowns.add(ring);
   window.__rigs = plot.fauna.rigs;   // tools/scene-fingerprint.js checks Plot 01 against its baseline
 }
 
