@@ -29,13 +29,18 @@ export function createStreamer(scene, shared, { nearRing = 1, onBuild = () => {}
     }
   } catch { fallback = true; }
 
-  const keyOf = (i, j, lod) => `${i},${j}|${lod}`;
+  // generations: each simulated year the forest changes, so tiles are rebuilt; until a tile's new version arrives
+  // its newest older version stays on screen (no flicker, no holes)
+  let gen = 0, treesFor = null;
+  const latest = new Map();   // "i,j|lod" -> newest cached key
+  const keyOf = (i, j, lod, g = gen) => `${i},${j}|${lod}|${g}`;
+  const newest = (i, j, lod) => cache.get(keyOf(i, j, lod)) || cache.get(latest.get(`${i},${j}|${lod}`));
   function request(i, j, lod) {
     const key = keyOf(i, j, lod); if (cache.has(key) || pending.has(key)) return false;
     if (fallback) { pending.set(key, true); setTimeout(() => ready.push({ key, data: buildTileData(i, j, lod, shared.detail) }), 0); return true; }
     const w = idle.pop(); if (!w) return false;
     const id = nextId++; jobs.set(id, { key }); pending.set(key, true);
-    w.postMessage({ id, i, j, lod, detail: shared.detail });
+    w.postMessage({ id, i, j, lod, detail: shared.detail, trees: treesFor ? treesFor(i, j) : undefined });
     return true;
   }
 
@@ -50,7 +55,8 @@ export function createStreamer(scene, shared, { nearRing = 1, onBuild = () => {}
     const t0 = performance.now();
     while (ready.length && performance.now() - t0 < budgetMs) {
       const { key, data } = ready.shift(); pending.delete(key);
-      const built = tileMeshes(data, shared); cache.set(key, { built, used: now });
+      const built = tileMeshes(data, shared), g = +key.split('|')[2], lk = key.split('|').slice(0, 2).join('|'); cache.set(key, { built, used: now, g });
+      const prevKey = latest.get(lk); if (!prevKey || cache.get(prevKey)?.g <= g) latest.set(lk, key);
     }
     // 2. what should be shown: the view's tiles plus a margin, all at full detail, nearest first
     const v = view || { i0: ci - nearRing, i1: ci + nearRing, j0: cj - nearRing, j1: cj + nearRing };
@@ -62,7 +68,7 @@ export function createStreamer(scene, shared, { nearRing = 1, onBuild = () => {}
     }
     want.sort((a, b) => a.d - b.d);
     for (const w of want) if (w.inView) request(w.i, w.j, 'near');
-    for (const w of want) if (w.inView && !cache.has(keyOf(w.i, w.j, 'near'))) request(w.i, w.j, 'far');   // cheap fallback, only while the near build is on its way
+    for (const w of want) if (w.inView && !newest(w.i, w.j, 'near')) request(w.i, w.j, 'far');   // cheap fallback, only while the near build is on its way
     for (const w of want) if (!w.inView) request(w.i, w.j, 'near');
     // prefetch: tiles ahead of the movement
     const sp = Math.hypot(vel[0], vel[1]);
@@ -70,26 +76,30 @@ export function createStreamer(scene, shared, { nearRing = 1, onBuild = () => {}
     // 3. show the best available version of each wanted tile; hide the rest
     const keep = new Set();
     for (const w of want) {
-      const k = `${w.i},${w.j}`, best = cache.get(keyOf(w.i, w.j, w.lod)) || cache.get(keyOf(w.i, w.j, w.lod === 'near' ? 'far' : 'near'));
+      const k = `${w.i},${w.j}`, best = newest(w.i, w.j, 'near') || newest(w.i, w.j, 'far');
       if (!best) continue;
       keep.add(k); best.used = now;
       const cur = shown.get(k);
       if (cur?.built === best.built) continue;
       if (cur) detach(cur);
       scene.add(best.built.group); best.built.crowns.forEach((m) => { m.visible = shared.canopy; crowns.add(m); });
-      const lod = cache.get(keyOf(w.i, w.j, 'near'))?.built === best.built ? 'near' : 'far';
+      const lod = newest(w.i, w.j, 'near')?.built === best.built ? 'near' : 'far';
       shown.set(k, { i: w.i, j: w.j, lod, built: best.built }); onBuild(w.i, w.j, lod);
     }
     for (const [k, s] of shown) if (!keep.has(k)) { detach(s); shown.delete(k); onDrop(s.i, s.j); }
-    // 4. trim the cache: least recently used first, never what is on screen
+    // 4. trim the cache: drop tiles from earlier years once off screen; then least recently used first; never what is shown
+    const onScreen = new Set([...shown.values()].map((q) => q.built)), drop = (key, c) => { c.built.dispose(); cache.delete(key); };
+    for (const [key, c] of [...cache]) if (c.g < gen && !onScreen.has(c.built)) drop(key, c);
     for (const [lod, max] of [['near', cacheNear], ['far', cacheFar]]) {
-      const list = [...cache.entries()].filter(([key]) => key.endsWith(lod)).sort((a, b) => a[1].used - b[1].used);
-      for (const [key, c] of list.slice(0, Math.max(0, list.length - max))) { if ([...shown.values()].some((s) => s.built === c.built)) continue; c.built.dispose(); cache.delete(key); }
+      const list = [...cache].filter(([key]) => key.includes(`|${lod}|`)).sort((a, b) => a[1].used - b[1].used);
+      for (const [key, c] of list.slice(0, Math.max(0, list.length - max))) if (!onScreen.has(c.built)) drop(key, c);
     }
     viewReady = want.every((w) => !w.inView || shown.get(`${w.i},${w.j}`)?.lod === 'near');
     return pending.size + ready.length;
   }
   function detach(s) { scene.remove(s.built.group); s.built.crowns.forEach((m) => crowns.delete(m)); }
   function setCanopy(on) { shared.canopy = on; crowns.forEach((m) => { m.visible = on; }); }
-  return { update, setCanopy, tiles: shown, crowns, get usingWorkers() { return !fallback; }, get viewReady() { return viewReady; } };
+  // a new simulated year: every tile is wanted again, built from the simulation's trees (fn(i, j) -> trees of the 3 x 3 tiles)
+  function setGeneration(g, fn) { gen = g; treesFor = fn; }
+  return { update, setCanopy, setGeneration, get refreshing() { return [...shown.values()].some((s) => cache.get(keyOf(s.i, s.j, s.lod))?.built !== s.built); }, tiles: shown, crowns, get usingWorkers() { return !fallback; }, get viewReady() { return viewReady; } };
 }

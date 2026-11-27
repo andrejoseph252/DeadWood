@@ -1,5 +1,5 @@
 {
-  "_about": "Species on Plot 01. 'render' holds art-direction values (colours, crown shape) read by the renderer. 'growth' will hold gap-model parameters (JABOWA/ForClim style) from roadmap step 1; every value added there must cite its source in 'sources'.",
+  "_about": "Species on Plot 01. 'render' holds art-direction values (colours, crown shape) read by the renderer. 'growth' holds gap-model parameters for src/sim/forest.js: hmax (m), dmax (cm DBH), amax (years), shade (tolerance class 1 intolerant .. 5 very tolerant), la (leaf area m2 per cm^1.6 of DBH); every value cites its sources.",
   "trees": {
     "beech": {
       "scientific": "Fagus sylvatica",
@@ -33,8 +33,18 @@
           ]
         }
       },
-      "growth": null,
-      "sources": []
+      "growth": {
+        "hmax": 45,
+        "dmax": 150,
+        "amax": 430,
+        "shade": 5,
+        "la": 0.14,
+        "_note": "values rounded from the ForClim/JABOWA parameter tables from memory; to be checked against the originals before they are used for findings"
+      },
+      "sources": [
+        "Botkin, Janak & Wallis (1972) J. Ecol. 60: 849-872 (JABOWA growth equation and light response)",
+        "Bugmann (1996) Ecology 77: 2055-2074, and Bugmann & Solomon (2000) Ecol. Appl. 10: 95-114 (ForClim species parameters: maximum height, diameter, age, shade tolerance)"
+      ]
     },
     "oak": {
       "scientific": "Quercus petraea",
@@ -69,8 +79,18 @@
           ]
         }
       },
-      "growth": null,
-      "sources": []
+      "growth": {
+        "hmax": 40,
+        "dmax": 200,
+        "amax": 800,
+        "shade": 2,
+        "la": 0.11,
+        "_note": "values rounded from the ForClim/JABOWA parameter tables from memory; to be checked against the originals before they are used for findings"
+      },
+      "sources": [
+        "Botkin, Janak & Wallis (1972) J. Ecol. 60: 849-872 (JABOWA growth equation and light response)",
+        "Bugmann (1996) Ecology 77: 2055-2074, and Bugmann & Solomon (2000) Ecol. Appl. 10: 95-114 (ForClim species parameters: maximum height, diameter, age, shade tolerance)"
+      ]
     },
     "birch": {
       "scientific": "Betula pendula",
@@ -105,8 +125,18 @@
           ]
         }
       },
-      "growth": null,
-      "sources": []
+      "growth": {
+        "hmax": 30,
+        "dmax": 80,
+        "amax": 150,
+        "shade": 1,
+        "la": 0.07,
+        "_note": "values rounded from the ForClim/JABOWA parameter tables from memory; to be checked against the originals before they are used for findings"
+      },
+      "sources": [
+        "Botkin, Janak & Wallis (1972) J. Ecol. 60: 849-872 (JABOWA growth equation and light response)",
+        "Bugmann (1996) Ecology 77: 2055-2074, and Bugmann & Solomon (2000) Ecol. Appl. 10: 95-114 (ForClim species parameters: maximum height, diameter, age, shade tolerance)"
+      ]
     },
     "spruce": {
       "scientific": "Picea abies",
@@ -141,8 +171,18 @@
           ]
         }
       },
-      "growth": null,
-      "sources": []
+      "growth": {
+        "hmax": 50,
+        "dmax": 150,
+        "amax": 600,
+        "shade": 4,
+        "la": 0.16,
+        "_note": "values rounded from the ForClim/JABOWA parameter tables from memory; to be checked against the originals before they are used for findings"
+      },
+      "sources": [
+        "Botkin, Janak & Wallis (1972) J. Ecol. 60: 849-872 (JABOWA growth equation and light response)",
+        "Bugmann (1996) Ecology 77: 2055-2074, and Bugmann & Solomon (2000) Ecol. Appl. 10: 95-114 (ForClim species parameters: maximum height, diameter, age, shade tolerance)"
+      ]
     },
     "fir": {
       "scientific": "Abies alba",
@@ -157,8 +197,18 @@
           ]
         }
       },
-      "growth": null,
-      "sources": []
+      "growth": {
+        "hmax": 55,
+        "dmax": 180,
+        "amax": 600,
+        "shade": 5,
+        "la": 0.16,
+        "_note": "values rounded from the ForClim/JABOWA parameter tables from memory; to be checked against the originals before they are used for findings"
+      },
+      "sources": [
+        "Botkin, Janak & Wallis (1972) J. Ecol. 60: 849-872 (JABOWA growth equation and light response)",
+        "Bugmann (1996) Ecology 77: 2055-2074, and Bugmann & Solomon (2000) Ecol. Appl. 10: 95-114 (ForClim species parameters: maximum height, diameter, age, shade tolerance)"
+      ]
     },
     "rowan": {
       "scientific": "Sorbus aucuparia",
@@ -191,8 +241,18 @@
           "#7ab446"
         ]
       },
-      "growth": null,
-      "sources": []
+      "growth": {
+        "hmax": 15,
+        "dmax": 40,
+        "amax": 120,
+        "shade": 2,
+        "la": 0.08,
+        "_note": "values rounded from the ForClim/JABOWA parameter tables from memory; to be checked against the originals before they are used for findings"
+      },
+      "sources": [
+        "Botkin, Janak & Wallis (1972) J. Ecol. 60: 849-872 (JABOWA growth equation and light response)",
+        "Bugmann (1996) Ecology 77: 2055-2074, and Bugmann & Solomon (2000) Ecol. Appl. 10: 95-114 (ForClim species parameters: maximum height, diameter, age, shade tolerance)"
+      ]
     },
     "alder": {
       "scientific": "Alnus glutinosa",
@@ -225,8 +285,18 @@
           ]
         }
       },
-      "growth": null,
-      "sources": []
+      "growth": {
+        "hmax": 30,
+        "dmax": 90,
+        "amax": 150,
+        "shade": 2,
+        "la": 0.09,
+        "_note": "values rounded from the ForClim/JABOWA parameter tables from memory; to be checked against the originals before they are used for findings"
+      },
+      "sources": [
+        "Botkin, Janak & Wallis (1972) J. Ecol. 60: 849-872 (JABOWA growth equation and light response)",
+        "Bugmann (1996) Ecology 77: 2055-2074, and Bugmann & Solomon (2000) Ecol. Appl. 10: 95-114 (ForClim species parameters: maximum height, diameter, age, shade tolerance)"
+      ]
     },
     "ash": {
       "scientific": "Fraxinus excelsior",
@@ -260,8 +330,18 @@
           ]
         }
       },
-      "growth": null,
-      "sources": []
+      "growth": {
+        "hmax": 40,
+        "dmax": 150,
+        "amax": 350,
+        "shade": 3,
+        "la": 0.09,
+        "_note": "values rounded from the ForClim/JABOWA parameter tables from memory; to be checked against the originals before they are used for findings"
+      },
+      "sources": [
+        "Botkin, Janak & Wallis (1972) J. Ecol. 60: 849-872 (JABOWA growth equation and light response)",
+        "Bugmann (1996) Ecology 77: 2055-2074, and Bugmann & Solomon (2000) Ecol. Appl. 10: 95-114 (ForClim species parameters: maximum height, diameter, age, shade tolerance)"
+      ]
     },
     "holly": {
       "scientific": "Ilex aquifolium",
@@ -294,8 +374,18 @@
           ]
         }
       },
-      "growth": null,
-      "sources": []
+      "growth": {
+        "hmax": 12,
+        "dmax": 40,
+        "amax": 300,
+        "shade": 5,
+        "la": 0.12,
+        "_note": "values rounded from the ForClim/JABOWA parameter tables from memory; to be checked against the originals before they are used for findings"
+      },
+      "sources": [
+        "Botkin, Janak & Wallis (1972) J. Ecol. 60: 849-872 (JABOWA growth equation and light response)",
+        "Bugmann (1996) Ecology 77: 2055-2074, and Bugmann & Solomon (2000) Ecol. Appl. 10: 95-114 (ForClim species parameters: maximum height, diameter, age, shade tolerance)"
+      ]
     },
     "hornbeam": {
       "scientific": "Carpinus betulus",
@@ -328,8 +418,18 @@
           ]
         }
       },
-      "growth": null,
-      "sources": [],
+      "growth": {
+        "hmax": 25,
+        "dmax": 100,
+        "amax": 250,
+        "shade": 4,
+        "la": 0.13,
+        "_note": "values rounded from the ForClim/JABOWA parameter tables from memory; to be checked against the originals before they are used for findings"
+      },
+      "sources": [
+        "Botkin, Janak & Wallis (1972) J. Ecol. 60: 849-872 (JABOWA growth equation and light response)",
+        "Bugmann (1996) Ecology 77: 2055-2074, and Bugmann & Solomon (2000) Ecol. Appl. 10: 95-114 (ForClim species parameters: maximum height, diameter, age, shade tolerance)"
+      ],
       "_note": "estate: oak coppice-with-standards"
     },
     "lime": {
@@ -362,8 +462,18 @@
           ]
         }
       },
-      "growth": null,
-      "sources": []
+      "growth": {
+        "hmax": 38,
+        "dmax": 200,
+        "amax": 1000,
+        "shade": 4,
+        "la": 0.13,
+        "_note": "values rounded from the ForClim/JABOWA parameter tables from memory; to be checked against the originals before they are used for findings"
+      },
+      "sources": [
+        "Botkin, Janak & Wallis (1972) J. Ecol. 60: 849-872 (JABOWA growth equation and light response)",
+        "Bugmann (1996) Ecology 77: 2055-2074, and Bugmann & Solomon (2000) Ecol. Appl. 10: 95-114 (ForClim species parameters: maximum height, diameter, age, shade tolerance)"
+      ]
     },
     "sycamore": {
       "scientific": "Acer pseudoplatanus",
@@ -396,8 +506,18 @@
           ]
         }
       },
-      "growth": null,
-      "sources": []
+      "growth": {
+        "hmax": 40,
+        "dmax": 150,
+        "amax": 600,
+        "shade": 4,
+        "la": 0.12,
+        "_note": "values rounded from the ForClim/JABOWA parameter tables from memory; to be checked against the originals before they are used for findings"
+      },
+      "sources": [
+        "Botkin, Janak & Wallis (1972) J. Ecol. 60: 849-872 (JABOWA growth equation and light response)",
+        "Bugmann (1996) Ecology 77: 2055-2074, and Bugmann & Solomon (2000) Ecol. Appl. 10: 95-114 (ForClim species parameters: maximum height, diameter, age, shade tolerance)"
+      ]
     },
     "pine": {
       "scientific": "Pinus sylvestris",
@@ -429,8 +549,18 @@
           ]
         }
       },
-      "growth": null,
-      "sources": [],
+      "growth": {
+        "hmax": 40,
+        "dmax": 100,
+        "amax": 700,
+        "shade": 1,
+        "la": 0.08,
+        "_note": "values rounded from the ForClim/JABOWA parameter tables from memory; to be checked against the originals before they are used for findings"
+      },
+      "sources": [
+        "Botkin, Janak & Wallis (1972) J. Ecol. 60: 849-872 (JABOWA growth equation and light response)",
+        "Bugmann (1996) Ecology 77: 2055-2074, and Bugmann & Solomon (2000) Ecol. Appl. 10: 95-114 (ForClim species parameters: maximum height, diameter, age, shade tolerance)"
+      ],
       "_note": "estate: crag crest; orange upper bark"
     },
     "goatWillow": {
@@ -463,8 +593,18 @@
           ]
         }
       },
-      "growth": null,
-      "sources": []
+      "growth": {
+        "hmax": 15,
+        "dmax": 50,
+        "amax": 60,
+        "shade": 1,
+        "la": 0.08,
+        "_note": "values rounded from the ForClim/JABOWA parameter tables from memory; to be checked against the originals before they are used for findings"
+      },
+      "sources": [
+        "Botkin, Janak & Wallis (1972) J. Ecol. 60: 849-872 (JABOWA growth equation and light response)",
+        "Bugmann (1996) Ecology 77: 2055-2074, and Bugmann & Solomon (2000) Ecol. Appl. 10: 95-114 (ForClim species parameters: maximum height, diameter, age, shade tolerance)"
+      ]
     },
     "apple": {
       "scientific": "Malus domestica",

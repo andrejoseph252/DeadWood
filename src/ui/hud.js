@@ -22,6 +22,8 @@ const ICONS = {
   house: '<path d="M4 11 12 4l8 7"/><path d="M6 10v10h12V10"/><path d="M10 20v-5h4v5"/>',
   leaf: '<path d="M5 19c0-8 5-14 15-14 0 10-6 15-14 15"/><path d="M5 19 13 11"/>',
   close: '<path d="M6 6l12 12M18 6 6 18"/>',
+  play: '<path d="M8 5.5v13l10.5-6.5L8 5.5Z" fill="currentColor"/>',
+  pause: '<path d="M8 5.5v13M16 5.5v13" stroke-width="2.6"/>',
 };
 export const icon = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ICONS.leaf}</svg>`;
 
@@ -71,6 +73,31 @@ export function createHud() {
       place.querySelector('.chip').textContent = chip; place.querySelector('h1').textContent = title; place.querySelector('p').textContent = text; place.classList.toggle('flagged', !!flagged);
     },
     setLoading(on) { pill.classList.toggle('on', on); },
+    // time control: play/pause, the year, and a speed switch. onChange({ playing, speed }) where speed is years per second
+    timeControl(onChange) {
+      const SPEEDS = [[0.5, '½ yr/s'], [2, '2 yr/s'], [8, '8 yr/s']];
+      const box = el('div', 'clock glass', `<button class="ib play" aria-label="Play">${icon('play')}</button><div class="yr"><b>2026</b><span>Study year 3</span></div><button class="speed" aria-label="Speed">${SPEEDS[0][1]}</button>`);
+      document.body.append(box);
+      let playing = false, si = 0;
+      const playBtn = box.querySelector('.play'), speedBtn = box.querySelector('.speed'), emit = () => onChange({ playing, speed: SPEEDS[si][0] });
+      playBtn.addEventListener('click', () => { playing = !playing; playBtn.innerHTML = icon(playing ? 'pause' : 'play'); playBtn.setAttribute('aria-label', playing ? 'Pause' : 'Play'); box.classList.toggle('running', playing); emit(); });
+      speedBtn.addEventListener('click', () => { si = (si + 1) % SPEEDS.length; speedBtn.textContent = SPEEDS[si][1]; emit(); });
+      addEventListener('keydown', (e) => { if (e.key === ' ' && e.target === document.body) { e.preventDefault(); playBtn.click(); } });
+      return { setYear(studyYear, extra = '') { box.querySelector('b').textContent = 2023 + studyYear; box.querySelector('span').textContent = `Study year ${studyYear}${extra}`; } };
+    },
+    // the inspect card: { name, sci, dbh, height, age, light, inc, incOpt, status, why } or null to close
+    inspect(info, onClose) {
+      let card = document.querySelector('.inspect');
+      if (!info) { card?.classList.remove('open'); return; }
+      if (!card) { card = el('div', 'inspect glass'); document.body.append(card); }
+      const pct = info.incOpt ? Math.max(0, Math.min(100, Math.round((info.inc / info.incOpt) * 100))) : null, stat = (v, u, l) => `<div><b>${v}</b><span>${u ? `${u} · ` : ''}${l}</span></div>`;
+      card.innerHTML = `<button class="x" aria-label="Close">${icon('close')}</button><div class="eyebrow">${info.status === 'snag' ? 'Standing dead tree' : info.status === 'dying' ? 'Dying tree' : 'Tree'}</div><h2>${info.name}</h2><div class="sci">${info.sci}</div>
+        <div class="grid">${stat(info.dbh.toFixed(1), 'cm', 'diameter')}${stat(info.height ? info.height.toFixed(1) : '–', 'm', 'height')}${stat(Math.round(info.age), 'yr', 'age')}${stat(info.light != null ? Math.round(info.light * 100) + '%' : '–', '', 'light')}</div>
+        ${pct != null ? `<div class="growth"><span>Growth vs. potential</span><div class="bar"><i style="width:${pct}%"></i></div><em>${(info.inc * 10).toFixed(1)} mm last year · ${pct}%</em></div>` : ''}
+        <p>${info.why}</p>`;
+      card.querySelector('.x').addEventListener('click', () => { card.classList.remove('open'); onClose?.(); });
+      requestAnimationFrame(() => card.classList.add('open'));
+    },
     // the veil only appears if a jump is still unfinished after a moment (cached places arrive without it)
     setVeil(on) { if (on) { veilT ||= performance.now(); if (performance.now() - veilT > 90 || veil.classList.contains('on')) veil.classList.add('on'); } else { veilT = 0; veil.classList.remove('on'); } },
   };

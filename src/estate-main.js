@@ -3,6 +3,8 @@
 // the ground cover.
 import * as THREE from 'three';
 import { CUT, cutaway } from './render/cutaway.js';
+import { createForest } from './sim/forest.js';
+import { useTrees, tileTrees, treeShape } from './estate/tile-plan.js';
 import { TREES as PLOT_TREES, height as plotH } from './world/plot.js';
 import { createPipeline } from './render/pipeline.js';
 import { createCameraRig } from './render/camera.js';
@@ -107,7 +109,7 @@ const map = createEstateMap({
   onJump: (x, z) => goto(Math.max(-470, Math.min(470, x)), Math.max(-470, Math.min(470, z)), rig.camera.zoom),
 });
 window.__view = async (x, z, zoom, canopy = true) => { goto(x, z, zoom ?? HOME); streamer.setCanopy(canopy); for (let k = 0; k < 2400 && (streamer.update(x, z, 50, viewTiles()) > 0 || !streamer.viewReady); k++) await new Promise((r) => setTimeout(r, 25)); streamer.update(x, z, 50, viewTiles()); while (plot && !plot.done && plot.group.parent) stepPlot(); };   // screenshot hook: waits for the tiles
-window.__estate = { streamer, rig, fauna };
+window.__estate = { streamer, rig, fauna, get forest() { return forest; } };
 
 // ---------- the canopy cutaway (render/cutaway.js) ----------
 // Zoomed out you see the canopy; as you zoom in, crowns dissolve in a circle around the cursor (on a mouse), the
@@ -126,6 +128,45 @@ function updateCutaway(dt) {
   else cutGoal.set(t.x, yAt(t.x, t.z), t.z);
   const c = CUT.uCutC.value; if (c.y < -1e3 || dt === 0) c.copy(cutGoal); else c.lerp(cutGoal, Math.min(1, dt * 14));
 }
+
+// ---------- the forest simulation (sim/forest.js) and time ----------
+// Years are spread over frames (a few patches per frame); the 3D world refreshes to the newest year once the
+// previous refresh has finished, so fast-forward never floods the tile builders.
+let forest = null, yearRun = null, playing = false, yps = 0.5, yearClock = 0, shownYear = 3;
+const clock = hud.timeControl(({ playing: p, speed }) => { playing = p; yps = speed; if (p && !forest) forest = createForest(generateEstate()); });
+const treesFor = (i, j) => { const out = []; for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) out.push(...tileTrees(i + di, j + dj)); return out; };
+function stepTime(dt) {
+  if (!forest) return;
+  if (playing) yearClock += dt * yps;
+  if (!yearRun && yearClock >= 1) { yearRun = forest.yearSteps(); yearClock -= 1; }
+  if (yearRun) { const t0 = performance.now(); while (performance.now() - t0 < 8) { if (yearRun.next().done) { yearRun = null; clock.setYear(forest.year); break; } } }
+  if (!yearRun && forest.year !== shownYear && !streamer.refreshing) { shownYear = forest.year; useTrees(generateEstate().trees); streamer.setGeneration(shownYear, treesFor); if (selected) showTree(selected); }
+}
+
+// ---------- inspect: click a tree to read it ----------
+let selected = null, downAt = null;
+const pick = new THREE.Raycaster(), pickPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), pickHit = new THREE.Vector3();
+const marker = new THREE.Mesh(new THREE.RingGeometry(0.88, 1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#f4c56e', transparent: true, opacity: 0.95, depthTest: false }));
+marker.renderOrder = 10; marker.visible = false; scene.add(marker);
+container.addEventListener('pointerdown', (e) => { downAt = [e.clientX, e.clientY, performance.now()]; });
+container.addEventListener('pointerup', (e) => {
+  if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 6 || performance.now() - downAt[2] > 450) return;
+  const r = container.getBoundingClientRect(); ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  pick.setFromCamera(ndc, rig.camera);
+  let gy = rig.controls.target.y; for (let k = 0; k < 3; k++) { pickPlane.constant = -gy; if (!pick.ray.intersectPlane(pickPlane, pickHit)) return; gy = yAt(pickHit.x, pickHit.z); }   // settle on the terrain
+  // the nearest trunk within its crown radius of the clicked ground point
+  const Hh = E.size / 2, ti = Math.floor((pickHit.x + Hh) / E.tile), tj = Math.floor((pickHit.z + Hh) / E.tile);
+  if (!forest) useTrees(generateEstate().trees);
+  let best = null, bd = Infinity;
+  for (const t of treesFor(ti, tj)) { const d = Math.hypot(t.x - pickHit.x, t.z - pickHit.z), reach = Math.max(1.2, treeShape(t).r * 0.8); if (d < reach && d < bd) { bd = d; best = t; } }
+  if (best) showTree(best); else { selected = null; marker.visible = false; hud.inspect(null); }
+});
+function showTree(t) {
+  selected = t; const info = (forest || createForest.preview).describe(t);
+  marker.position.set(t.x, yAt(t.x, t.z) + 0.12, t.z); const r = Math.max(0.9, treeShape(t).r); marker.scale.set(r, 1, r); marker.visible = true;
+  hud.inspect(info, () => { selected = null; marker.visible = false; });
+}
+createForest.preview = { describe: (t) => createForest({ trees: [], patches: [] }).describe(t) };
 
 function stepPlot() {
   const r = plot.steps.next(); if (!r.done) return;
@@ -157,7 +198,7 @@ pipeline.renderer.setAnimationLoop((now) => {
   if (arriving && plotting) for (let k = 0; k < 4 && !plot.done; k++) stepPlot();
   if (arriving && streamer.viewReady && !plotting) arriving = false;
   hud.setVeil(arriving); hud.setLoading(busy && !arriving);
-  updateCutaway(dt);
+  updateCutaway(dt); stepTime(dt);
   if (plot && !plot.done) stepPlot(); else if (plot?.group.parent) plot.fauna.update(dt, elapsed);
   fauna.update(dt, elapsed, t.x, t.z);
   updateLabel(); map.update();

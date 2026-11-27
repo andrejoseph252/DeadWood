@@ -43,7 +43,10 @@ export function treeShape(t) {
 }
 
 const tileSeed = (i, j) => ((E.seed * 73856093) ^ ((i + 1) * 19349663) ^ ((j + 1) * 83492791)) >>> 0 || 1;
-const byTile = new Map();   // tile key -> trees, built once
+const byTile = new Map();   // tile key -> trees (the generated estate's, until the simulation supplies its own)
+// the simulation's trees replace the generated ones: give all of them, or just the 3 x 3 tiles a build needs
+export function useTrees(trees) { byTile.clear(); for (const t of trees) { const k = `${Math.floor((t.x + HALF) / E.tile)},${Math.floor((t.z + HALF) / E.tile)}`; if (!byTile.has(k)) byTile.set(k, []); byTile.get(k).push(t); } byTile.set('_sim', []); }
+export const tileTrees = (i, j) => byTile.get(`${i},${j}`) || [];
 
 // the plan for tile (i, j); near = include ground cover (the renderer asks for near plans only for tiles close to the camera)
 export function planTile(i, j, { near = true } = {}) {
