@@ -98,6 +98,7 @@ export function buildTileData(i, j, lod, detail = 1) {
       continue;
     }
     const tints = leaves.map((h) => tinted(h, v, 0.07));   // this tree's own shades, computed once
+    put(lay('ring'), t.x, gy + 0.06, t.z, 0, 0, 0, t.r * (conifer ? 0.95 : 1), 1, t.r * (conifer ? 0.95 : 1), [1, 0.96, 0.84]);   // crown outline on the ground, shown inside the cutaway
     if (t.dbh > 38) put(lay('flare'), t.x, gy - 0.05, t.z, 0, 0, 0, tr * 1.9 / 0.1, 0.7, tr * 1.9 / 0.1, tinted(bark, v, 0.06));
     if (conifer) {
       const cb = t.kind === 'pine' ? 0.6 : 0.3 + v * 0.25, n = Math.max(30, Math.min(240, Math.round(7.5 * t.h * t.r)));

@@ -5,6 +5,7 @@ import { C, toon, tm } from '../render/materials.js';
 import { windify } from '../render/wind.js';
 import { waterMaterial, waterGeometry } from '../render/water.js';
 import { createRng } from '../core/random.js';
+import { cutaway } from '../render/cutaway.js';
 
 const stick = (r0, r1, sides) => new THREE.CylinderGeometry(r1, r0, 1, sides).translate(0, 0.5, 0);
 const half = (r) => new THREE.SphereGeometry(r, 7, 4, 0, Math.PI * 2, 0, Math.PI / 2);
@@ -24,7 +25,12 @@ function kit(tex) {
   const grassM = toon({ vertexColors: true, side: THREE.DoubleSide }); windify(grassM, { strength: 0.18, grass: true });
   const clumpMat = (map) => { const m = toon({ map, alphaTest: 0.5, side: THREE.DoubleSide }); windify(m, { billboard: true, strength: 0.05 }); const d = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map, alphaTest: 0.5, side: THREE.DoubleSide }); windify(d, { billboard: true, strength: 0.05 }); return { m, d }; };
   const spriteMat = (map) => { const m = toon({ map, alphaTest: 0.5, side: THREE.DoubleSide }); windify(m, { billboard: true, strength: 0.04 }); return m; };
-  const leaf = clumpMat(tex.leaf), needle = clumpMat(tex.needle), quad = new THREE.PlaneGeometry(1, 1), spr = new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0);
+  // crowns dissolve in the cutaway (render/cutaway.js); low shrubs and saplings keep their own, uncut material
+  const leaf = clumpMat(tex.leaf), needle = clumpMat(tex.needle), lowLeaf = clumpMat(tex.leaf), crownPlain = cutaway(toon());
+  cutaway(leaf.m); cutaway(needle.m);
+  const ringM = cutaway(new THREE.MeshBasicMaterial({ color: new THREE.Color('#fff4d6') }), 'ring');
+  const ringG = new THREE.RingGeometry(0.93, 1, 40).rotateX(-Math.PI / 2);
+  const quad = new THREE.PlaneGeometry(1, 1), spr = new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0);
   const w = (strength, grass) => { const m = toon({ side: THREE.DoubleSide }); windify(m, { strength, grass }); return m; };
   const stalkM = toon(); windify(stalkM, { strength: 0.05, grass: true });
   const sedgeM = toon({ vertexColors: true, side: THREE.DoubleSide }); windify(sedgeM, { strength: 0.12, grass: true });
@@ -32,9 +38,10 @@ function kit(tex) {
     trunk: { geo: stick(0.1, 0.065, 8), mat: plain, cast: true }, flare: { geo: new THREE.ConeGeometry(0.1, 1, 8).translate(0, 0.5, 0), mat: plain, cast: true },
     branch: { geo: stick(0.11, 0.05, 5), mat: plain, cast: true }, stub: { geo: stick(0.03, 0.012, 4), mat: plain, cast: true }, root: { geo: stick(0.12, 0.03, 5), mat: plain, cast: true },
     lenticel: { geo: new THREE.BoxGeometry(0.21, 0.04, 0.21), mat: plain }, collar: { geo: half(0.2), mat: plain },
-    blob: { geo: new THREE.IcosahedronGeometry(1, 1), mat: plain, cast: true, crown: true }, cone: { geo: new THREE.ConeGeometry(1, 1, 7).translate(0, 0.5, 0), mat: plain, cast: true, crown: true },
+    blob: { geo: new THREE.IcosahedronGeometry(1, 1), mat: crownPlain, cast: true, crown: true }, cone: { geo: new THREE.ConeGeometry(1, 1, 7).translate(0, 0.5, 0), mat: crownPlain, cast: true, crown: true },
+    ring: { geo: ringG, mat: ringM, crown: true },
     leaves: { geo: quad, mat: leaf.m, depth: leaf.d, cast: true, kind: 'clump', crown: true }, needles: { geo: quad, mat: needle.m, depth: needle.d, cast: true, kind: 'clump', crown: true },
-    low: { geo: quad, mat: leaf.m, depth: leaf.d, cast: true, kind: 'clump' },
+    low: { geo: quad, mat: lowLeaf.m, depth: lowLeaf.d, cast: true, kind: 'clump' },
     ivy: { geo: spr, mat: spriteMat(tex.clover), kind: 'sprite' }, clover: { geo: spr, mat: spriteMat(tex.clover), kind: 'sprite' }, dot: { geo: spr, mat: spriteMat(tex.dot), kind: 'sprite' },
     chip: { geo: new THREE.PlaneGeometry(0.15, 0.1).rotateX(-Math.PI / 2), mat: plain }, grass: { geo: tuftGeo(3, 0.06, 0.35, 0.6, 0, 3), mat: grassM },
     sedge: { geo: tuftGeo(7, 0.04, 0.4, 0.6, 0.35, 5), mat: sedgeM }, fern: { geo: FROND, mat: w(0.06), cast: true },

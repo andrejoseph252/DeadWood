@@ -2,6 +2,8 @@
 // plot's aesthetic. ?at=x,z starts somewhere else; ?still freezes time; ?canopy=off hides the crowns; ?detail=0.5 thins
 // the ground cover.
 import * as THREE from 'three';
+import { CUT, cutaway } from './render/cutaway.js';
+import { TREES as PLOT_TREES, height as plotH } from './world/plot.js';
 import { createPipeline } from './render/pipeline.js';
 import { createCameraRig } from './render/camera.js';
 import { addLights } from './render/lights.js';
@@ -86,7 +88,7 @@ hud.button('map', 'Map', () => map.toggle());
 const followBtn = hud.button('follow', 'Follow an animal', () => {});
 hud.menu(followBtn, [{ title: 'Follow the nearest', items: fauna.species.map((s) => ({ icon: ANIMAL_ICON[s], label: LABEL[s], sub: ANIMAL_SUB[s], value: s })) }], (s) => {
   const t = rig.controls.target, a = fauna.nearest(s, t.x, t.z);
-  if (a) { goto(a.x, a.z, 1.6); rig.follow(a.rig.root); streamer.setCanopy(false); canopyBtn.setAttribute('aria-pressed', 'false'); }   // crowns off so the animal shows (until the visibility tools, E5)
+  if (a) { goto(a.x, a.z, 1.6); rig.follow(a.rig.root); followed = a.rig.root; }   // the cutaway opens the canopy around it
 });
 const gotoBtn = hud.button('pin', 'Go to a place', () => {});
 hud.menu(gotoBtn, PLACES.map((sec) => ({ title: sec.title, items: sec.items.map(([label, x, z, ic, flag]) => ({ icon: ic, label, flag, value: [x, z] })) })), ([x, z]) => goto(x, z));
@@ -107,9 +109,32 @@ const map = createEstateMap({
 window.__view = async (x, z, zoom, canopy = true) => { goto(x, z, zoom ?? HOME); streamer.setCanopy(canopy); for (let k = 0; k < 2400 && (streamer.update(x, z, 50, viewTiles()) > 0 || !streamer.viewReady); k++) await new Promise((r) => setTimeout(r, 25)); streamer.update(x, z, 50, viewTiles()); while (plot && !plot.done && plot.group.parent) stepPlot(); };   // screenshot hook: waits for the tiles
 window.__estate = { streamer, rig, fauna };
 
+// ---------- the canopy cutaway (render/cutaway.js) ----------
+// Zoomed out you see the canopy; as you zoom in, crowns dissolve in a circle around the cursor (on a mouse), the
+// animal you follow, or the view centre (on touch), so the forest floor shows where you are looking.
+let followed = null, pointer = null, pointerT = -1e9;
+rig.onFollowReleased(() => { followed = null; });
+const raycaster = new THREE.Raycaster(), plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), ndc = new THREE.Vector2(), hit = new THREE.Vector3(), cutGoal = new THREE.Vector3();
+container.addEventListener('pointermove', (e) => { if (e.pointerType !== 'mouse') return; const r = container.getBoundingClientRect(); pointer = [((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1]; pointerT = performance.now(); });
+container.addEventListener('pointerleave', () => { pointer = null; });
+function updateCutaway(dt) {
+  const z = rig.camera.zoom, t = rig.controls.target;
+  const R = Math.min(1, Math.max(0, (z - 0.55) / 0.75)) * 10 + Math.min(1, Math.max(0, (z - 1.3) / 1.6)) * 5;   // metres
+  CUT.uCutR.value += (R - CUT.uCutR.value) * Math.min(1, dt * 8 || 1);
+  if (followed) cutGoal.set(followed.position.x, followed.position.y, followed.position.z);
+  else if (pointer && performance.now() - pointerT < 4000) { plane.constant = -t.y; ndc.set(pointer[0], pointer[1]); raycaster.setFromCamera(ndc, rig.camera); if (raycaster.ray.intersectPlane(plane, hit)) cutGoal.set(hit.x, yAt(hit.x, hit.z), hit.z); }
+  else cutGoal.set(t.x, yAt(t.x, t.z), t.z);
+  const c = CUT.uCutC.value; if (c.y < -1e3 || dt === 0) c.copy(cutGoal); else c.lerp(cutGoal, Math.min(1, dt * 14));
+}
+
 function stepPlot() {
   const r = plot.steps.next(); if (!r.done) return;
   Object.assign(plot, r.value, { done: true }); plot.crowns.forEach((m) => { m.visible = shared.canopy; streamer.crowns.add(m); });
+  // Plot 01's crowns join the cutaway, and its trees get crown outlines on the ground like the estate's
+  const mats = new Set(); plot.crowns.forEach((c) => c.traverse((o) => { if (o.isMesh) mats.add(o.material); })); mats.forEach((m) => cutaway(m));
+  const trees = PLOT_TREES.filter((t) => t.r > 0), ring = new THREE.InstancedMesh(new THREE.RingGeometry(0.93, 1, 40).rotateX(-Math.PI / 2), cutaway(new THREE.MeshBasicMaterial({ color: '#fff4d6' }), 'ring'), trees.length), d = new THREE.Object3D();
+  trees.forEach((t, k) => { d.position.set(t.x, plotH(t.x, t.z) + 0.06, t.z); d.scale.set(t.r, 1, t.r); d.updateMatrix(); ring.setMatrixAt(k, d.matrix); });
+  ring.visible = shared.canopy; plot.group.add(ring); streamer.crowns.add(ring);
   window.__rigs = plot.fauna.rigs;   // tools/scene-fingerprint.js checks Plot 01 against its baseline
 }
 
@@ -132,6 +157,7 @@ pipeline.renderer.setAnimationLoop((now) => {
   if (arriving && plotting) for (let k = 0; k < 4 && !plot.done; k++) stepPlot();
   if (arriving && streamer.viewReady && !plotting) arriving = false;
   hud.setVeil(arriving); hud.setLoading(busy && !arriving);
+  updateCutaway(dt);
   if (plot && !plot.done) stepPlot(); else if (plot?.group.parent) plot.fauna.update(dt, elapsed);
   fauna.update(dt, elapsed, t.x, t.z);
   updateLabel(); map.update();
