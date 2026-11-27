@@ -4,10 +4,12 @@ import * as THREE from 'three';
 
 const postVertex = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }';
 const postFragment = `
-  uniform sampler2D tColor; uniform sampler2D tDepth; uniform vec2 res; uniform float depthRange; varying vec2 vUv;
+  uniform sampler2D tColor; uniform sampler2D tDepth; uniform vec2 res; uniform vec2 sub; uniform float depthRange; varying vec2 vUv;
   float D(vec2 uv){ return texture2D(tDepth, uv).r; }
   void main(){
-    vec2 px = 1.0 / res; vec2 uv = (floor(vUv * res) + 0.5) * px;
+    // sub: the camera's sub-pixel remainder (the scene is rendered from a camera snapped to the pixel grid, so it
+    // does not shimmer); shifting the lookup by it keeps motion smooth
+    vec2 px = 1.0 / res; vec2 uv = (floor(vUv * res + sub) + 0.5) * px;
     float dr0 = D(uv);
     if (dr0 > 0.9999) {   // background: soft dark-green field with a faint warm glow behind the plot
       vec2 q = vUv - vec2(0.5, 0.56); float g = 1.0 - smoothstep(0.0, 0.75, length(q * vec2(1.3, 1.0)));
@@ -43,7 +45,7 @@ export function createPipeline(container) {
   rt.depthTexture = new THREE.DepthTexture(2, 2); rt.depthTexture.type = THREE.UnsignedIntType;
 
   const post = new THREE.ShaderMaterial({
-    uniforms: { tColor: { value: rt.texture }, tDepth: { value: rt.depthTexture }, res: { value: new THREE.Vector2(1, 1) }, depthRange: { value: 300 } },
+    uniforms: { tColor: { value: rt.texture }, tDepth: { value: rt.depthTexture }, res: { value: new THREE.Vector2(1, 1) }, sub: { value: new THREE.Vector2(0, 0) }, depthRange: { value: 300 } },
     vertexShader: postVertex,
     fragmentShader: postFragment,
   });
@@ -57,8 +59,19 @@ export function createPipeline(container) {
     post.uniforms.depthRange.value = camera.far - camera.near;
   }
 
+  // Pixel snapping: an orthographic camera that moves by less than one art pixel makes every edge crawl. Render
+  // from the camera moved onto the art-pixel grid (along its own right and up axes), then shift the upscale by
+  // the remainder, so the image moves smoothly without shimmer.
+  const R = new THREE.Vector3(), U = new THREE.Vector3(), keep = new THREE.Vector3();
   function render(camera) {
+    camera.updateMatrixWorld();
+    R.setFromMatrixColumn(camera.matrixWorld, 0); U.setFromMatrixColumn(camera.matrixWorld, 1);
+    const res = post.uniforms.res.value, upp = (camera.top - camera.bottom) / camera.zoom / res.y;
+    const a = camera.position.dot(R) / upp, b = camera.position.dot(U) / upp, fa = a - Math.round(a), fb = b - Math.round(b);
+    keep.copy(camera.position); camera.position.addScaledVector(R, -fa * upp).addScaledVector(U, -fb * upp); camera.updateMatrixWorld();
+    post.uniforms.sub.value.set(fa, fb);
     renderer.setRenderTarget(rt); renderer.render(scene, camera);
+    camera.position.copy(keep); camera.updateMatrixWorld();
     renderer.setRenderTarget(null); renderer.render(postScene, postCam);
   }
 

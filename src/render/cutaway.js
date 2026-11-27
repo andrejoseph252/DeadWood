@@ -5,7 +5,8 @@
 // inverse: they show only inside the cut, so you keep the "under that beech" context.
 import * as THREE from 'three';
 
-export const CUT = { uCutC: { value: new THREE.Vector3(0, -1e4, 0) }, uCutR: { value: 0 } };
+// uKeep: the selected tree's position and crown radius; it is never cut away
+export const CUT = { uCutC: { value: new THREE.Vector3(0, -1e4, 0) }, uCutR: { value: 0 }, uKeep: { value: new THREE.Vector4(0, 0, 0, 0) } };
 
 const VERT = `
   vec4 cutW = vec4(transformed, 1.0);
@@ -27,12 +28,12 @@ export function cutaway(mat, mode = 'crown') {
   const prev = mat.onBeforeCompile, prevKey = mat.customProgramCacheKey?.bind(mat);
   mat.onBeforeCompile = (sh, r) => {
     prev?.call(mat, sh, r);
-    sh.uniforms.uCutC = CUT.uCutC; sh.uniforms.uCutR = CUT.uCutR;
+    sh.uniforms.uCutC = CUT.uCutC; sh.uniforms.uCutR = CUT.uCutR; sh.uniforms.uKeep = CUT.uKeep;
     sh.vertexShader = 'varying vec3 vCutW;\n' + sh.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>' + VERT);
     const test = mode === 'crown'
-      ? 'float cutA = uCutR > 0.0 ? smoothstep(uCutR, uCutR * 0.62, length(vCutW.xz - uCutC.xz)) * step(uCutC.y + 1.8, vCutW.y) : 0.0; if (cutA > cutBayer(gl_FragCoord.xy)) discard;'
+      ? 'float cutA = uCutR > 0.0 ? smoothstep(uCutR, uCutR * 0.62, length(vCutW.xz - uCutC.xz)) * step(uCutC.y + 1.8, vCutW.y) : 0.0; if (uKeep.w > 0.0 && length(vCutW.xz - uKeep.xz) < uKeep.w) cutA = 0.0; if (cutA > cutBayer(gl_FragCoord.xy)) discard;'
       : 'float cutA = uCutR > 0.0 ? smoothstep(uCutR * 1.02, uCutR * 0.7, length(vCutW.xz - uCutC.xz)) : 0.0; if (cutA <= cutBayer(gl_FragCoord.xy)) discard;';
-    sh.fragmentShader = 'varying vec3 vCutW;\nuniform vec3 uCutC;\nuniform float uCutR;\n' + BAYER + '\n' + sh.fragmentShader.replace('void main() {', 'void main() {\n' + test);
+    sh.fragmentShader = 'varying vec3 vCutW;\nuniform vec3 uCutC;\nuniform float uCutR;\nuniform vec4 uKeep;\n' + BAYER + '\n' + sh.fragmentShader.replace('void main() {', 'void main() {\n' + test);
   };
   mat.customProgramCacheKey = () => (prevKey ? prevKey() : '') + '|cut-' + mode;
   mat.needsUpdate = true;

@@ -62,6 +62,7 @@ function kit(tex) {
 
 // data -> { group, crowns, dispose }; shared: { tex, canopy }
 export function tileMeshes(d, shared) {
+  const meshes = {};
   const K = kit(shared.tex), group = new THREE.Group(), crowns = [], own = [], far = d.lod === 'far';
   const geo = (attrs, idx) => { const g = new THREE.BufferGeometry(); for (const [k, [a, n]] of Object.entries(attrs)) g.setAttribute(k, new THREE.BufferAttribute(a, n)); if (idx) g.setIndex(new THREE.BufferAttribute(idx, 1)); g.computeBoundingSphere(); own.push(g); return g; };
   const ground = new THREE.Mesh(geo({ position: [d.ground.pos, 3], color: [d.ground.col, 3], normal: [d.ground.nrm, 3] }, d.ground.idx), K._ground); ground.receiveShadow = true; group.add(ground);
@@ -82,6 +83,10 @@ export function tileMeshes(d, shared) {
     im.computeBoundingSphere(); im.boundingSphere.radius += k.kind === 'clump' ? 2 : 0.5;
     im.castShadow = !!k.cast && !far; im.receiveShadow = true; group.add(im);
     if (k.crown) { im.visible = shared.canopy; crowns.push(im); }
+    meshes[key] = im;
   }
-  return { group, crowns, dispose() { group.traverse((o) => { if (o.isInstancedMesh) o.dispose(); }); own.forEach((g) => g.dispose()); } };
+  // tree id -> [[mesh, start, count], ...] over its trunk, branches, leaves and needles (for lighting one tree up)
+  const trees = new Map(), RL = d.rangeLayers || [], TR = d.treeRanges;
+  if (TR) d.treeIds.forEach((id, n) => { const parts = []; RL.forEach((k, q) => { const st = TR[n * RL.length * 2 + q * 2], ct = TR[n * RL.length * 2 + q * 2 + 1]; if (ct && meshes[k]) parts.push([meshes[k], st, ct]); }); trees.set(id, parts); });
+  return { group, crowns, trees, dispose() { group.traverse((o) => { if (o.isInstancedMesh) o.dispose(); }); own.forEach((g) => g.dispose()); } };
 }

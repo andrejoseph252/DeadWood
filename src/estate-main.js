@@ -4,7 +4,6 @@
 import * as THREE from 'three';
 import { CUT, cutaway } from './render/cutaway.js';
 import { createForest } from './sim/forest.js';
-import { createGlow } from './render/glow.js';
 import { useTrees, tileTrees, treeShape } from './estate/tile-plan.js';
 import { createPipeline } from './render/pipeline.js';
 import { createCameraRig } from './render/camera.js';
@@ -158,7 +157,7 @@ function stepTime(dt) {
     seasons.set(SEASONS[cal.p >= 0.75 ? 3 : cal.p >= 0.5 ? 2 : cal.p >= 0.25 ? 1 : 0][0], cal.year, cal.p);
     if (cal.t >= 1 && !yearRun) endSeason();
   } else if (auto && performance.now() > autoT) nextSeason();
-  if (forest && !yearRun && forest.year !== shownYear && !streamer.refreshing) { shownYear = forest.year; useTrees(generateEstate().trees); streamer.setGeneration(shownYear, treesFor); if (selected) showTree(selected); }
+  if (forest && !yearRun && forest.year !== shownYear && !streamer.refreshing) { shownYear = forest.year; useTrees(generateEstate().trees); streamer.setGeneration(shownYear, treesFor); if (selected) { if (selected.fallen) clearSelection(); else showTree(selected); } }
 }
 function endSeason() {
   cal.t = -1; cal.si = cal.nsi; seasons.busy(false); autoT = performance.now() + 1800;
@@ -172,28 +171,56 @@ function endSeason() {
 }
 
 // ---------- inspect: click a tree to read it ----------
-let selected = null, downAt = null;
-const pick = new THREE.Raycaster(), pickPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), pickHit = new THREE.Vector3();
-const glow = createGlow(scene);   // the selected tree glows (render/glow.js)
+// Picking works on what you see: each nearby tree's crown is projected to the screen and the front-most crown under
+// the pointer wins (a crown that the cutaway has dissolved is picked by its trunk instead). The chosen tree lights
+// up through its own leaves and trunk, gently breathing, and is never cut away.
+let selected = null, downAt = null, lit = null;
+const pick = new THREE.Raycaster(), pickPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), pickHit = new THREE.Vector3(), P0 = new THREE.Vector3(), P1 = new THREE.Vector3();
 container.addEventListener('pointerdown', (e) => { downAt = [e.clientX, e.clientY, performance.now()]; });
 container.addEventListener('pointerup', (e) => {
-  if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 6 || performance.now() - downAt[2] > 450) return;
-  const r = container.getBoundingClientRect(); ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
-  pick.setFromCamera(ndc, rig.camera);
-  let gy = rig.controls.target.y; for (let k = 0; k < 3; k++) { pickPlane.constant = -gy; if (!pick.ray.intersectPlane(pickPlane, pickHit)) return; gy = yAt(pickHit.x, pickHit.z); }   // settle on the terrain
-  // the nearest trunk within its crown radius of the clicked ground point
+  if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 6 || performance.now() - downAt[2] > 600) return;
+  const r = container.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+  ndc.set((mx / r.width) * 2 - 1, -(my / r.height) * 2 + 1); pick.setFromCamera(ndc, rig.camera);
+  let gy = rig.controls.target.y; for (let k = 0; k < 3; k++) { pickPlane.constant = -gy; if (!pick.ray.intersectPlane(pickPlane, pickHit)) return; gy = yAt(pickHit.x, pickHit.z); }
   const Hh = E.size / 2, ti = Math.floor((pickHit.x + Hh) / E.tile), tj = Math.floor((pickHit.z + Hh) / E.tile);
   if (!forest) useTrees(generateEstate().trees);
-  let best = null, bd = Infinity;
-  for (const t of treesFor(ti, tj)) { const d = Math.hypot(t.x - pickHit.x, t.z - pickHit.z), reach = Math.max(1.2, treeShape(t).r * 0.8); if (d < reach && d < bd) { bd = d; best = t; } }
-  if (best) showTree(best); else { selected = null; glow.hide(); hud.inspect(null); }
+  const c = rig.camera, k = r.height / ((c.top - c.bottom) / c.zoom), toScreen = (v) => { v.project(c); return [(v.x + 1) / 2 * r.width, (1 - v.y) / 2 * r.height, v.z]; };
+  const cutR = CUT.uCutR.value, cc = CUT.uCutC.value;
+  let best = null, bz = Infinity;
+  for (const t of treesFor(ti, tj)) {
+    const sh = treeShape(t), g = yAt(t.x, t.z), conifer = t.kind === 'spruce' || t.kind === 'pine', v = t.v ?? 0.5, tr = Math.max(0.06, t.dbh / 200);
+    const crownHidden = cutR > 0.5 && Math.hypot(t.x - cc.x, t.z - cc.z) < cutR * 0.8 && selected !== t;
+    if (t.status !== 'snag' && !crownHidden) {   // the crown as a disc on screen
+      const cy = conifer ? g + sh.h * (0.62 + v * 0.06) : g + sh.h - sh.r * 0.75, [sx, sy, sz] = toScreen(P0.set(t.x, cy, t.z)), rad = sh.r * (conifer ? 0.82 : 1) * k;
+      if (Math.hypot(mx - sx, my - sy) < rad && sz < bz) { bz = sz; best = t; continue; }
+    }
+    // the trunk as a line on screen
+    const [ax, ay, az] = toScreen(P0.set(t.x, g, t.z)), [bx, by] = toScreen(P1.set(t.x, g + sh.h * (conifer ? 0.9 : 0.55), t.z));
+    const dx = bx - ax, dy = by - ay, u = Math.max(0, Math.min(1, ((mx - ax) * dx + (my - ay) * dy) / (dx * dx + dy * dy || 1)));
+    if (Math.hypot(mx - ax - dx * u, my - ay - dy * u) < Math.max(5, tr * k * 1.6) && az < bz) { bz = az; best = t; }
+  }
+  if (best) showTree(best); else clearSelection();
 });
 function showTree(t) {
-  selected = t; const info = (forest || createForest.preview).describe(t);
-  glow.show(t, treeShape(t), yAt(t.x, t.z) - 0.1);
-  hud.inspect(info, () => { selected = null; glow.hide(); });
+  selected = t; hud.inspect((forest || createForest.preview).describe(t), clearSelection);
+  CUT.uKeep.value.set(t.x, 0, t.z, treeShape(t).r * 1.05);
 }
+function clearSelection() { selected = null; CUT.uKeep.value.w = 0; hud.inspect(null); }
 createForest.preview = { describe: (t) => createForest({ trees: [], patches: [] }).describe(t) };
+// light the selected tree: warm and brighter, breathing slowly; restore the colours when it changes
+const WARM = [0.72, 0.42, 0.05];   // a deep gold (linear colour), so the leaves glow warm rather than wash out
+function updateHighlight(time) {
+  const parts = selected ? streamer.treeParts(selected.id, selected.x, selected.z) : null;
+  if (lit && lit.parts !== parts) { for (const [m, st, ct, orig] of lit.saved) { m.instanceColor.array.set(orig, st * 3); m.instanceColor.needsUpdate = true; } lit = null; }
+  if (!parts) return;
+  if (!lit) lit = { parts, saved: parts.map(([m, st, ct]) => [m, st, ct, m.instanceColor.array.slice(st * 3, (st + ct) * 3)]) };
+  const b = 0.5 + 0.5 * Math.sin(time * 2.4), mix = 0.3 + 0.12 * b, gain = 1.12 + 0.12 * b;
+  for (const [m, st, ct, orig] of lit.saved) {
+    const a = m.instanceColor.array;
+    for (let q = 0; q < ct * 3; q++) a[st * 3 + q] = (orig[q] * (1 - mix) + WARM[q % 3] * mix) * gain;
+    m.instanceColor.needsUpdate = true;
+  }
+}
 
 function stepPlot() {
   const r = plot.steps.next(); if (!r.done) return;
@@ -210,19 +237,31 @@ function resize() {
 }
 new ResizeObserver(resize).observe(container); resize();
 const sunDir = sun.position.clone().normalize();
+// The sun's shadow box covers the whole view at any zoom (sized in steps, so it does not breathe as you zoom), and
+// its centre snaps to the shadow map's texel grid, so shadows do not shimmer as the camera moves.
+const LX = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), sunDir).normalize(), LY = new THREE.Vector3().crossVectors(sunDir, LX), sc = new THREE.Vector3();
+let shadowExt = 0;
+function fitShadows(t) {
+  const c = rig.camera, dx = t.x - c.position.x, dz = t.z - c.position.z, elev = Math.atan2(c.position.y - t.y, Math.hypot(dx, dz) || 1);
+  const need = Math.max((c.right - c.left) / c.zoom, (c.top - c.bottom) / c.zoom / Math.max(0.35, Math.sin(elev))) * 0.62 + 18, ext = Math.ceil(need / 20) * 20;
+  if (ext !== shadowExt) { shadowExt = ext; Object.assign(sun.shadow.camera, { left: -ext, right: ext, top: ext, bottom: -ext, near: 1, far: 240 }); sun.shadow.camera.updateProjectionMatrix(); }
+  const texel = (2 * ext) / sun.shadow.mapSize.x; sc.set(t.x, t.y, t.z);
+  const a = sc.dot(LX) / texel, b = sc.dot(LY) / texel; sc.addScaledVector(LX, (Math.round(a) - a) * texel).addScaledVector(LY, (Math.round(b) - b) * texel);
+  sun.target.position.copy(sc); sun.position.copy(sc).addScaledVector(sunDir, 110); sun.target.updateMatrixWorld();
+}
 let last = performance.now(), elapsed = 0;
 pipeline.renderer.setAnimationLoop((now) => {
   const dt = still ? 0 : Math.max(0, Math.min((now - last) / 1000, 0.05)); last = now; elapsed += dt;
   uTime.value = elapsed;
   rig.update(dt);
-  const t = rig.controls.target, sx2 = Math.round(t.x), sz2 = Math.round(t.z);   // the shadow box follows, snapped to whole metres
-  sun.target.position.set(sx2, t.y, sz2); sun.position.set(sx2, t.y, sz2).addScaledVector(sunDir, 80); sun.target.updateMatrixWorld();
+  const t = rig.controls.target;
+  fitShadows(t);
   // under the veil there is no animation to keep smooth, so finished tiles are turned into meshes faster
   const busy = streamer.update(t.x, t.z, arriving ? 40 : 6, viewTiles()) > 0, plotting = plot && !plot.done && plot.group.parent;
   if (arriving && plotting) for (let k = 0; k < 4 && !plot.done; k++) stepPlot();
   if (arriving && streamer.viewReady && !plotting) arriving = false;
   hud.setVeil(arriving); hud.setLoading(busy && !arriving);
-  updateCutaway(dt); stepTime(dt);
+  updateCutaway(dt); stepTime(dt); updateHighlight(elapsed);
   if (plot && !plot.done) stepPlot(); else if (plot?.group.parent) plot.fauna.update(dt, elapsed);
   fauna.update(dt, elapsed, t.x, t.z);
   updateLabel(); map.update();

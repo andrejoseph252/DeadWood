@@ -82,13 +82,18 @@ export function buildTileData(i, j, lod, detail = 1) {
   out.water = buildWater(x0, z0, size, near, Y);
 
   // ---------- trees ----------
+  // per tree, which instances are its own (trunk, branches, leaves or needles), so the page can light one tree up
+  const RANGE_LAYERS = ['trunk', 'branch', 'leaves', 'needles'], ids = [], ranges = [];
+  const mark = () => RANGE_LAYERS.map((k) => L[k]?.n || 0);
   for (const t of plan.trees) {
+    const m0 = mark();
+    (() => {
     const Rr = species.trees[t.kind]?.render, gy = Y(t.x, t.z), v = t.v ?? 0.5, tr = Math.max(0.06, t.dbh / 200), conifer = CONIFER.has(t.kind), lean = (v - 0.5) * 0.12, la = v * 40;
     const bark = Rr?.bark || '#6a5a48';
     if (t.status === 'snag') {   // beetle-killed spruce, years dead: grey, bark flaking, branch stubs
       put(lay('trunk'), t.x, gy - 0.1, t.z, Math.cos(la) * lean * 0.5, 0, Math.sin(la) * lean * 0.5, tr / 0.1, t.h * (0.7 + v * 0.25), tr / 0.1, rgb(pick(['#9a968c', '#8b877d', '#a39f94'])));
       if (near) for (let k = 0; k < 10; k++) { const y = rr(1.5, t.h * 0.8), a = rnd() * 6.28; put(lay('stub'), t.x + Math.cos(a) * tr, gy + y, t.z + Math.sin(a) * tr, 0, -a, -1.25, 1, rr(0.25, 0.7) * (1.1 - y / t.h), 1, rgb('#8b877d')); }
-      continue;
+      return;
     }
     const dying = t.status === 'dying', leaves = dying ? (Rr?.deadNeedles || ['#a5622f', '#b8763c']) : (Rr?.leaves || Rr?.needles || ['#4a7a2e']);
     const trunkH = conifer ? t.h * 0.92 : t.h * (Rr?.trunk?.heightFrac ?? 0.55);
@@ -96,7 +101,7 @@ export function buildTileData(i, j, lod, detail = 1) {
     if (!near) {
       if (conifer) { const w = t.r * (0.85 + v * 0.3); put(lay('cone'), t.x, gy + t.h * (0.22 + v * 0.12), t.z, 0, v * 6, 0, w, t.h * (0.62 + v * 0.16), w, tinted(pick(leaves), v, 0.08)); }
       else put(lay('blob'), t.x, gy + t.h - t.r * 0.7, t.z, 0, rnd() * 6, 0, t.r, t.r * 0.78 * (Rr?.crown?.squash ?? 0.9), t.r * (0.85 + v * 0.3), tinted(pick(leaves), v, 0.08));
-      continue;
+      return;
     }
     const tints = leaves.map((h) => tinted(h, v, 0.07));   // this tree's own shades, computed once
     if (t.dbh > 38) put(lay('flare'), t.x, gy - 0.05, t.z, 0, 0, 0, tr * 1.9 / 0.1, 0.7, tr * 1.9 / 0.1, tinted(bark, v, 0.06));
@@ -105,7 +110,7 @@ export function buildTileData(i, j, lod, detail = 1) {
       for (let k = 0; k < 6 + Math.round(v * 6); k++) { const y = rr(1.2, t.h * cb), a = rnd() * 6.28; put(lay('stub'), t.x + Math.cos(a) * tr, gy + y, t.z + Math.sin(a) * tr, 0, -a, -1.35, 1, rr(0.3, 0.75), 1, rgb('#6e5a48')); }
       const NL = lay('needles');
       for (let k = 0; k < n; k++) {
-        const f = rnd(); if (dying && rnd() < 0.45) continue;
+        const f = rnd(); if (dying && rnd() < 0.45) return;
         const y = t.h * (cb + (1 - cb) * f), rad = (t.kind === 'pine' ? t.r * (0.6 + 0.4 * rnd()) : t.r * (1 - f) * (0.55 + 0.45 * Math.sqrt(rnd())) + 0.18), a = rnd() * 6.28, ox = lean * y * Math.cos(la), oz = lean * y * Math.sin(la);
         putClump(NL, t.x + Math.cos(a) * rad + ox, gy + y - rad * 0.25, t.z + Math.sin(a) * rad + oz, rr(0.9, 1.4) * (0.7 + (1 - f) * 0.5) * Math.min(1, t.r / 2), pick(tints), Math.cos(a), 0.55, Math.sin(a));
       }
@@ -122,9 +127,11 @@ export function buildTileData(i, j, lod, detail = 1) {
       if ((t.kind === 'beech' || t.kind === 'oak') && t.dbh > 50) for (let k = 0; k < 5; k++) { const a = k / 5 * 6.28 + v; put(lay('root'), t.x, gy + 0.05, t.z, 0, -a, -1.42, tr * 3, rr(0.9, 1.5), tr * 3, barkC); }
       if (t.kind === 'oak' && v > 0.55 && t.dbh > 30) for (let k = 0; k < 40; k++) { const a = rr(-1.6, 1.2); putS(lay('ivy'), t.x + Math.cos(a) * (tr + 0.04), gy + rr(0.2, trunkH * 0.9), t.z + Math.sin(a) * (tr + 0.04), rr(0.18, 0.28), rgb(pick(['#24451f', '#2f5628', '#3a6630']))); }
     }
+      })();
+    const m1 = mark(); ids.push(t.id); ranges.push(...m0.flatMap((a, k) => [a, m1[k] - a]));
   }
-
   if (near) groundCover(plan, F, lay, detail, R, pick);
+  out.treeIds = ids; out.treeRanges = new Int32Array(ranges); out.rangeLayers = RANGE_LAYERS;
   // the pond's snags, lodge, dam sticks, reeds and lily pads; stones and pebbles along the brooks (own random stream)
   waterFeatures({ x0, z0, size, near, Y, Y0, lay, put, putS, rgb, seed: tileSeed(i, j, 3) });
   if (plan.bespoke.length) { const cx2 = x0 + size / 2, cz2 = z0 + size / 2; for (const [dx, dz] of [[-2, -2], [2, -2], [0, 2.4]]) out.stakes.push([cx2 + dx, yAt(cx2 + dx, cz2 + dz), cz2 + dz]); }
@@ -248,9 +255,11 @@ function borderSides(x0, z0, size) {
 
 // all the typed arrays in a tile's data, for transferring from a worker without copying
 export function transferables(d) {
+  // (treeIds is a plain array and is copied; treeRanges is transferred)
   const t = [d.ground.pos.buffer, d.ground.col.buffer, d.ground.nrm.buffer, d.ground.idx.buffer];
   if (d.water) t.push(d.water.pos.buffer, d.water.flow.buffer, d.water.wet.buffer, d.water.idx.buffer);
   for (const b of d.borders) t.push(b.pos.buffer, b.col.buffer, b.idx.buffer);
   for (const l of Object.values(d.layers)) { t.push(l.m.buffer, l.c.buffer); if (l.a) t.push(l.a.buffer); }
+  if (d.treeRanges) t.push(d.treeRanges.buffer);
   return t;
 }

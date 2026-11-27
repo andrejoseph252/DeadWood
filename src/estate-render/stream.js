@@ -101,5 +101,7 @@ export function createStreamer(scene, shared, { nearRing = 1, onBuild = () => {}
   function setCanopy(on) { shared.canopy = on; crowns.forEach((m) => { m.visible = on; }); }
   // a new simulated year: every tile is wanted again, built from the simulation's trees (fn(i, j) -> trees of the 3 x 3 tiles)
   function setGeneration(g, fn) { gen = g; treesFor = fn; }
-  return { update, setCanopy, setGeneration, get refreshing() { return [...shown.values()].some((s) => cache.get(keyOf(s.i, s.j, s.lod))?.built !== s.built); }, tiles: shown, crowns, get usingWorkers() { return !fallback; }, get viewReady() { return viewReady; } };
+  // the parts of a tree as shown now: [[mesh, start, count]] or null
+  function treeParts(id, x, z) { const s = shown.get(`${Math.floor((x + HALF) / E.tile)},${Math.floor((z + HALF) / E.tile)}`); return s?.built.trees?.get(id) || null; }
+  return { update, setCanopy, setGeneration, treeParts, get refreshing() { return [...shown.values()].some((s) => cache.get(keyOf(s.i, s.j, s.lod))?.built !== s.built); }, tiles: shown, crowns, get usingWorkers() { return !fallback; }, get viewReady() { return viewReady; } };
 }

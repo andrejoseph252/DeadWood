@@ -101,7 +101,7 @@ export function createForest(est, { seed = 1962, startYear = 3 } = {}) {
     const out = { name: sp?.common || t.kind, sci: sp?.scientific || '', dbh: t.dbh, age: t.age, height: p ? heightOf(p, t.dbh) : null, status: t.status, light: t.light, inc: t.inc, incOpt: t.incOpt };
     if (t.status === 'snag') out.why = t.diedOf ? `Died in the simulation (${t.diedOf}); standing dead wood until it falls.` : 'Standing dead wood.';
     else if (!p) out.why = 'Not part of the growth model yet.';
-    else if (t.light == null) out.why = 'Press play to let the forest grow; its light and growth are worked out each year.';
+    else if (t.light == null) out.why = 'Press Next season: its light and growth are worked out each summer.';
     else {
       const pct = t.incOpt ? Math.round((t.inc / t.incOpt) * 100) : 0, lightPct = Math.round(t.light * 100);
       out.why = t.light > 0.7 ? `In the canopy with ${lightPct}% light: growing at ${pct}% of its potential.`
